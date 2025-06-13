@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import PatientCredentials from './PatientCredentials';
+import AppointmentScheduler from './AppointmentScheduler';
 
 const PatientRegister = ({ onBack }) => {
   const [formData, setFormData] = useState({
@@ -14,11 +15,11 @@ const PatientRegister = ({ onBack }) => {
     bloodGroup: '',
     allergies: '',
     medicalHistory: ''
-  });
-  const [error, setError] = useState('');
+  });  const [error, setError] = useState('');
   const [success, setSuccess] = useState(null);
   const [loading, setLoading] = useState(false);
   const [showCredentials, setShowCredentials] = useState(false);
+  const [showAppointmentScheduler, setShowAppointmentScheduler] = useState(false);
 
   const { registerPatient, userRole } = useAuth();  const handleSubmit = async (e) => {
     e.preventDefault();
@@ -63,12 +64,21 @@ const PatientRegister = ({ onBack }) => {
       setLoading(false);
     }
   };
-
   const handleChange = (e) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
     });
+  };
+
+  const handleScheduleAppointment = () => {
+    setShowCredentials(false);
+    setShowAppointmentScheduler(true);
+  };
+
+  const handleBackFromScheduler = () => {
+    setShowAppointmentScheduler(false);
+    setSuccess(null);
   };
   if (userRole !== 'receptionist') {
     return (
@@ -82,14 +92,25 @@ const PatientRegister = ({ onBack }) => {
     );  }
   
   return (
-    <>
-      {showCredentials && success && (
+    <>      {showCredentials && success && (
         <PatientCredentials
           patientData={success}
           onClose={() => setShowCredentials(false)}
+          onScheduleAppointment={handleScheduleAppointment}
           onPrint={() => {
           }}
         />
+      )}
+
+      {showAppointmentScheduler && success && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <AppointmentScheduler
+              onBack={handleBackFromScheduler}
+              selectedPatient={success}
+            />
+          </div>
+        </div>
       )}
       
       <div className="min-h-screen bg-gradient-to-br from-blue-500 to-purple-600 px-4 py-8">
@@ -99,8 +120,7 @@ const PatientRegister = ({ onBack }) => {
           <p className="text-center text-gray-600 italic mb-6">Register a new patient in the hospital system</p>
           
           {error && <div className="bg-gradient-to-r from-red-500 to-red-600 text-white p-3 rounded-lg mb-4 text-center font-medium">{error}</div>}
-          
-          {success && (
+            {success && (
             <div className="bg-gradient-to-r from-green-500 to-green-600 text-white p-4 rounded-lg mb-6">
               <h3 className="text-lg font-bold mb-3">Patient Registered Successfully!</h3>
               <div className="bg-white/20 p-4 rounded-lg">
@@ -108,6 +128,7 @@ const PatientRegister = ({ onBack }) => {
                 <p className="mb-2"><strong>Email:</strong> {success.email}</p>
                 <p className="mb-2"><strong>Temporary Password:</strong> {success.tempPassword}</p>
                 <p className="text-sm italic mt-3">Please provide these credentials to the patient. They will be required to change their password on first login.</p>
+                <p className="text-sm italic mt-2">💡 You can also schedule an appointment for this patient immediately using the credentials modal.</p>
               </div>
             </div>
           )}

@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import PatientRegister from './PatientRegister';
+import PatientDetails from './PatientDetails';
+import AppointmentScheduler from './AppointmentScheduler';
 
 const Dashboard = () => {
   const { currentUser, userRole, userDetails, logout, getPatients } = useAuth();
@@ -10,10 +12,11 @@ const Dashboard = () => {
     totalAppointments: 8,
     pendingOrders: 12,
     activeStaff: 11
-  });
-  const [appointments, setAppointments] = useState([]);
+  });  const [appointments, setAppointments] = useState([]);
   const [prescriptions, setPrescriptions] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [selectedPatient, setSelectedPatient] = useState(null);
+  const [showPatientDetails, setShowPatientDetails] = useState(false);
 
   useEffect(() => {
     if (userRole === 'receptionist' || userRole === 'doctor') {
@@ -137,7 +140,6 @@ const Dashboard = () => {
       ]);
     }
   };
-
   const handleLogout = async () => {
     try {
       await logout();
@@ -146,6 +148,15 @@ const Dashboard = () => {
     }
   };
 
+  const handleViewPatientDetails = (patient) => {
+    setSelectedPatient(patient);
+    setShowPatientDetails(true);
+  };
+
+  const handleClosePatientDetails = () => {
+    setSelectedPatient(null);
+    setShowPatientDetails(false);
+  };
   const renderCurrentView = () => {
     switch (currentView) {
       case 'register-patient':
@@ -153,7 +164,11 @@ const Dashboard = () => {
       case 'view-patients':
         return renderPatientsView();
       case 'appointments':
-        return renderAppointmentsView();
+        return renderAppointmentsView();      case 'schedule-appointment':
+        return <AppointmentScheduler 
+          onBack={() => setCurrentView('appointments')} 
+          selectedPatient={selectedPatient}
+        />;
       case 'prescriptions':
         return renderPrescriptionsView();
       case 'orders':
@@ -201,9 +216,11 @@ const Dashboard = () => {
                   <td className="px-6 py-4 text-gray-600">{patient.bloodGroup}</td>
                   <td className="px-6 py-4 text-gray-600">
                     {new Date(patient.registrationDate).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4">
-                    <button className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition duration-200">
+                  </td>                  <td className="px-6 py-4">
+                    <button 
+                      onClick={() => handleViewPatientDetails(patient)}
+                      className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition duration-200"
+                    >
                       View Details
                     </button>
                   </td>
@@ -273,9 +290,11 @@ const Dashboard = () => {
         
         <div>
           <div className="bg-white rounded-xl shadow-lg p-6">
-            <h3 className="text-xl font-semibold text-gray-800 mb-4">Quick Actions</h3>
-            <div className="space-y-3">
-              <button className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition duration-200">
+            <h3 className="text-xl font-semibold text-gray-800 mb-4">Quick Actions</h3>            <div className="space-y-3">
+              <button 
+                onClick={() => setCurrentView('schedule-appointment')}
+                className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition duration-200"
+              >
                 Schedule New Appointment
               </button>
               <button className="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition duration-200">
@@ -772,9 +791,21 @@ const Dashboard = () => {
         );
     }
   };
-
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50">      {/* Patient Details Modal */}
+      {showPatientDetails && selectedPatient && (
+        <PatientDetails
+          patient={selectedPatient}
+          onClose={handleClosePatientDetails}
+          onEdit={() => {
+            console.log('Edit patient:', selectedPatient);
+          }}
+          onScheduleAppointment={(patient) => {
+            setCurrentView('schedule-appointment');
+          }}
+        />
+      )}
+      
       <header className="bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-xl">
         <div className="max-w-7xl mx-auto px-6 py-6">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">

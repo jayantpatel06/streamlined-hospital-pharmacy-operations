@@ -1,6 +1,6 @@
 import React from 'react';
 
-const PatientCredentials = ({ patientData, onClose, onPrint }) => {
+const PatientCredentials = ({ patientData, onClose, onPrint, onScheduleAppointment }) => {
   const handlePrint = () => {
     const printContent = document.getElementById('patient-credentials-print');
     const printWindow = window.open('', '_blank');
@@ -109,14 +109,21 @@ const PatientCredentials = ({ patientData, onClose, onPrint }) => {
               </div>
             </div>
           </div>
-          
-          <div className="flex gap-3 mt-6 no-print">
+            <div className="flex gap-3 mt-6 no-print">
             <button
               onClick={handlePrint}
               className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition duration-200"
             >
               🖨️ Print
             </button>
+            {onScheduleAppointment && (
+              <button
+                onClick={onScheduleAppointment}
+                className="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition duration-200"
+              >
+                📅 Schedule Appointment
+              </button>
+            )}
             <button
               onClick={onClose}
               className="flex-1 bg-gray-600 text-white py-2 px-4 rounded-lg hover:bg-gray-700 transition duration-200"
