@@ -17,13 +17,11 @@ const SystemInstructions = ({ onClose }) => {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Staff Roles */}
             <div className="space-y-6">
               <h3 className="text-2xl font-semibold text-blue-800 border-b-2 border-blue-200 pb-2">
                 Staff Login Credentials
               </h3>
 
-              {/* Doctor Section */}
               <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
                 <h4 className="text-lg font-semibold text-blue-800 mb-3">👨‍⚕️ Doctors</h4>
                 <div className="mb-3">
@@ -49,7 +47,6 @@ const SystemInstructions = ({ onClose }) => {
                 </div>
               </div>
 
-              {/* Receptionist Section */}
               <div className="bg-green-50 p-4 rounded-lg border border-green-200">
                 <h4 className="text-lg font-semibold text-green-800 mb-3">🏥 Receptionists</h4>
                 <div className="mb-3">
@@ -72,7 +69,6 @@ const SystemInstructions = ({ onClose }) => {
                 </div>
               </div>
 
-              {/* Pharmacy Section */}
               <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
                 <h4 className="text-lg font-semibold text-purple-800 mb-3">💊 Pharmacy Staff</h4>
                 <div className="mb-3">
@@ -96,7 +92,6 @@ const SystemInstructions = ({ onClose }) => {
               </div>
             </div>
 
-            {/* Patient Registration Process */}
             <div className="space-y-6">
               <h3 className="text-2xl font-semibold text-orange-800 border-b-2 border-orange-200 pb-2">
                 Patient Registration Process

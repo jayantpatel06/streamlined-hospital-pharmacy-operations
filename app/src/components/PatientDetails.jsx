@@ -22,7 +22,6 @@ const PatientDetails = ({ patient, onClose, onEdit, onScheduleAppointment }) => 
         </div>
         
         <div className="p-6">
-          {/* Patient Basic Information */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
             <div className="bg-blue-50 p-6 rounded-xl border-l-4 border-blue-500">
               <h3 className="text-xl font-semibold text-blue-800 mb-4">Basic Information</h3>
@@ -75,13 +74,11 @@ const PatientDetails = ({ patient, onClose, onEdit, onScheduleAppointment }) => 
             </div>
           </div>
 
-          {/* Address */}
           <div className="bg-gray-50 p-6 rounded-xl mb-6 border-l-4 border-gray-500">
             <h3 className="text-xl font-semibold text-gray-800 mb-3">Address</h3>
             <p className="text-gray-700">{patient.address}</p>
           </div>
 
-          {/* Medical History */}
           <div className="bg-purple-50 p-6 rounded-xl mb-6 border-l-4 border-purple-500">
             <h3 className="text-xl font-semibold text-purple-800 mb-3">Medical History</h3>
             <p className="text-gray-700 whitespace-pre-wrap">
@@ -89,7 +86,6 @@ const PatientDetails = ({ patient, onClose, onEdit, onScheduleAppointment }) => 
             </p>
           </div>
 
-          {/* Recent Activity */}
           <div className="bg-orange-50 p-6 rounded-xl mb-6 border-l-4 border-orange-500">
             <h3 className="text-xl font-semibold text-orange-800 mb-4">Recent Activity</h3>
             <div className="space-y-4">
@@ -111,8 +107,9 @@ const PatientDetails = ({ patient, onClose, onEdit, onScheduleAppointment }) => 
                 <p className="text-sm text-gray-500 mt-1">Prescribed by: Dr. Smith</p>
               </div>
             </div>
-          </div>          {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row gap-3 mt-8">            <button 
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3 mt-8">
+            <button 
               onClick={() => {
                 onClose();
                 if (onScheduleAppointment) {
@@ -123,10 +120,22 @@ const PatientDetails = ({ patient, onClose, onEdit, onScheduleAppointment }) => 
             >
               📅 Schedule Appointment
             </button>
-            <button className="flex-1 bg-green-600 text-white py-3 px-6 rounded-lg hover:bg-green-700 transition duration-200 font-medium">
+            <button 
+              onClick={() => {
+                onClose();
+                window.dispatchEvent(new CustomEvent('navigate-to-prescription-manager', { detail: patient }));
+              }}
+              className="flex-1 bg-green-600 text-white py-3 px-6 rounded-lg hover:bg-green-700 transition duration-200 font-medium"
+            >
               📝 Create Prescription
             </button>
-            <button className="flex-1 bg-purple-600 text-white py-3 px-6 rounded-lg hover:bg-purple-700 transition duration-200 font-medium">
+            <button 
+              onClick={() => {
+                onClose();
+                window.dispatchEvent(new CustomEvent('navigate-to-medical-records', { detail: patient }));
+              }}
+              className="flex-1 bg-purple-600 text-white py-3 px-6 rounded-lg hover:bg-purple-700 transition duration-200 font-medium"
+            >
               📋 Update Medical Records
             </button>
             <button 
@@ -137,7 +146,6 @@ const PatientDetails = ({ patient, onClose, onEdit, onScheduleAppointment }) => 
             </button>
           </div>
 
-          {/* Close Button */}
           <div className="flex justify-end mt-6 pt-6 border-t border-gray-200">
             <button
               onClick={onClose}

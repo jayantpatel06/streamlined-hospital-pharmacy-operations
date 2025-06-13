@@ -54,7 +54,6 @@ const AdminSetup = ({ onClose }) => {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Setup Panel */}
             <div>
               <h3 className="text-xl font-semibold text-gray-800 mb-4">Initialize Default Staff</h3>
               
@@ -94,7 +93,6 @@ const AdminSetup = ({ onClose }) => {
               )}
             </div>
 
-            {/* Instructions Panel */}
             <div>
               <h3 className="text-xl font-semibold text-gray-800 mb-4">Login Instructions</h3>
               

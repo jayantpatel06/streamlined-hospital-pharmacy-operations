@@ -3,8 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import PatientCredentials from './PatientCredentials';
 import AppointmentScheduler from './AppointmentScheduler';
 
-const PatientRegister = ({ onBack }) => {
-  const [formData, setFormData] = useState({
+const PatientRegister = ({ onBack }) => {  const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
     email: '',
@@ -14,8 +13,11 @@ const PatientRegister = ({ onBack }) => {
     emergencyContact: '',
     bloodGroup: '',
     allergies: '',
-    medicalHistory: ''
-  });  const [error, setError] = useState('');
+    medicalHistory: '',
+    isEmergency: false,
+    bedNumber: '',
+    location: ''
+  });const [error, setError] = useState('');
   const [success, setSuccess] = useState(null);
   const [loading, setLoading] = useState(false);
   const [showCredentials, setShowCredentials] = useState(false);
@@ -264,9 +266,7 @@ const PatientRegister = ({ onBack }) => {
               placeholder="List any known allergies (medications, food, etc.)"
               className="w-full p-3 border-2 border-gray-200 rounded-lg transition-all duration-300 focus:outline-none focus:border-blue-500 focus:shadow-lg focus:shadow-blue-500/20 focus:-translate-y-0.5"
             />
-          </div>
-
-          <div className="mb-6">
+          </div>          <div className="mb-6">
             <label htmlFor="medicalHistory" className="block mb-2 text-gray-700 font-medium">Medical History:</label>
             <textarea
               id="medicalHistory"
@@ -277,6 +277,60 @@ const PatientRegister = ({ onBack }) => {
               placeholder="Brief medical history, previous surgeries, chronic conditions, etc."
               className="w-full p-3 border-2 border-gray-200 rounded-lg transition-all duration-300 focus:outline-none focus:border-blue-500 focus:shadow-lg focus:shadow-blue-500/20 focus:-translate-y-0.5"
             />
+          </div>
+
+          <div className="mb-6 p-4 border-2 border-red-200 rounded-lg bg-red-50">
+            <div className="flex items-center mb-4">
+              <input
+                type="checkbox"
+                id="isEmergency"
+                name="isEmergency"
+                checked={formData.isEmergency}
+                onChange={handleChange}
+                className="mr-3 w-5 h-5 text-red-600 border-red-300 rounded focus:ring-red-500"
+              />
+              <label htmlFor="isEmergency" className="text-red-700 font-semibold text-lg">
+                🚨 Emergency Registration
+              </label>
+            </div>
+            
+            {formData.isEmergency && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                <div>
+                  <label htmlFor="bedNumber" className="block mb-2 text-red-700 font-medium">Bed Number:</label>
+                  <input
+                    type="text"
+                    id="bedNumber"
+                    name="bedNumber"
+                    value={formData.bedNumber}
+                    onChange={handleChange}
+                    placeholder="e.g., ICU-101, Ward-A-205"
+                    className="w-full p-3 border-2 border-red-300 rounded-lg transition-all duration-300 focus:outline-none focus:border-red-500 focus:shadow-lg focus:shadow-red-500/20 focus:-translate-y-0.5"
+                    required={formData.isEmergency}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="location" className="block mb-2 text-red-700 font-medium">Hospital Location:</label>
+                  <select
+                    id="location"
+                    name="location"
+                    value={formData.location}
+                    onChange={handleChange}
+                    className="w-full p-3 border-2 border-red-300 rounded-lg transition-all duration-300 focus:outline-none focus:border-red-500 focus:shadow-lg focus:shadow-red-500/20 focus:-translate-y-0.5"
+                    required={formData.isEmergency}
+                  >
+                    <option value="">Select Location</option>
+                    <option value="Emergency Ward">Emergency Ward</option>
+                    <option value="ICU - Floor 3">ICU - Floor 3</option>
+                    <option value="General Ward - Floor 1">General Ward - Floor 1</option>
+                    <option value="General Ward - Floor 2">General Ward - Floor 2</option>
+                    <option value="Pediatric Ward - Floor 2">Pediatric Ward - Floor 2</option>
+                    <option value="Maternity Ward - Floor 4">Maternity Ward - Floor 4</option>
+                    <option value="Surgical Ward - Floor 3">Surgical Ward - Floor 3</option>
+                  </select>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex flex-col md:flex-row gap-4">

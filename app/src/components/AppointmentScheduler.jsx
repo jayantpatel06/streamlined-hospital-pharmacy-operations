@@ -16,14 +16,13 @@ const AppointmentScheduler = ({ onBack, selectedPatient }) => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  const { getPatients, userRole, userDetails } = useAuth();
+  const { getPatients, userRole, userDetails, createAppointment } = useAuth();
   const dropdownRef = useRef(null);
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
   const minDate = tomorrow.toISOString().split('T')[0];  useEffect(() => {
     loadPatients();
     
-    // Auto-set doctor name if user is a doctor
     if (userRole === 'doctor' && userDetails) {
       const doctorFullName = `${userDetails.firstName} ${userDetails.lastName}`;
       const specialization = userDetails.specialization || userDetails.department || '';
@@ -42,15 +41,16 @@ const AppointmentScheduler = ({ onBack, selectedPatient }) => {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, []);
-
-  const loadPatients = async () => {
+  }, []);  const loadPatients = async () => {
     try {
+      setLoading(true);
       const patientsData = await getPatients();
       setAllPatients(patientsData);
       setFilteredPatients(patientsData);
     } catch (error) {
       console.error('Error loading patients:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -75,8 +75,7 @@ const AppointmentScheduler = ({ onBack, selectedPatient }) => {
     setSelectedPatientData(patient);
     setPatientSearch(`${patient.firstName} ${patient.lastName}`);
     setShowPatientDropdown(false);
-  };
-  const handleSubmit = (e) => {
+  };  const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (!selectedPatientData) {
@@ -89,18 +88,42 @@ const AppointmentScheduler = ({ onBack, selectedPatient }) => {
       return;
     }
     
-    setLoading(true);
-    
-    setTimeout(() => {
+    try {
+      setLoading(true);
+      
+      let doctorId = '';
+      let doctorFullName = doctorName;
+      let departmentName = department;
+      
+      if (doctorName.includes('-')) {
+        const parts = doctorName.split('-');
+        doctorFullName = parts[0].trim();
+        departmentName = parts[1].trim();
+      }
+      
+      const appointmentData = {
+        patientId: selectedPatientData.patientId,
+        patientName: `${selectedPatientData.firstName} ${selectedPatientData.lastName}`,
+        doctorName: doctorFullName,
+        department: departmentName,
+        date: date,
+        time: time,
+        type: type,
+        notes: notes,
+        status: 'Scheduled',
+        createdBy: userDetails?.uid || '',
+        createdByRole: userRole
+      };
+      
+      await createAppointment(appointmentData);
+      
       setSuccess(true);
-      setLoading(false);
       
       setTimeout(() => {
         if (!selectedPatient) { 
           setSelectedPatientData(null);
           setPatientSearch('');
         }
-        // Only reset doctor name if user is receptionist
         if (userRole === 'receptionist') {
           setDoctorName('');
         }
@@ -112,7 +135,12 @@ const AppointmentScheduler = ({ onBack, selectedPatient }) => {
         setSuccess(false);
         setShowPatientDropdown(false);
       }, 2000);
-    }, 1000);
+    } catch (error) {
+      console.error('Error creating appointment:', error);
+      alert('Failed to create appointment. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const doctorsList = [

@@ -1,28 +1,54 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { db } from '../config/firebase';
+import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
 import PatientRegister from './PatientRegister';
 import PatientDetails from './PatientDetails';
 import AppointmentScheduler from './AppointmentScheduler';
+import EmergencySlotManager from './EmergencySlotManager';
+import PrescriptionManager from './PrescriptionManager';
+import MedicalRecordsManager from './MedicalRecordsManager';
+import PharmacyManager from './PharmacyManager';
 
 const Dashboard = () => {
   const { currentUser, userRole, userDetails, logout, getPatients } = useAuth();
   const [currentView, setCurrentView] = useState('dashboard');
-  const [patients, setPatients] = useState([]);  const [stats, setStats] = useState({
+  const [patients, setPatients] = useState([]);
+  const [stats, setStats] = useState({
     totalPatients: 0,
-    totalAppointments: 8,
-    pendingOrders: 12,
-    activeStaff: 11
-  });  const [appointments, setAppointments] = useState([]);
+    totalAppointments: 0,
+    pendingOrders: 0,
+    activeStaff: 0
+  });
+  const [appointments, setAppointments] = useState([]);
   const [prescriptions, setPrescriptions] = useState([]);
   const [orders, setOrders] = useState([]);
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [showPatientDetails, setShowPatientDetails] = useState(false);
-
+  const [loading, setLoading] = useState(true);
   useEffect(() => {
     if (userRole === 'receptionist' || userRole === 'doctor') {
       loadPatients();
     }
     loadDashboardData();
+    
+    const handleNavigateToPrescriptionManager = (event) => {
+      setSelectedPatient(event.detail);
+      setCurrentView('prescription-manager');
+    };
+    
+    const handleNavigateToMedicalRecords = (event) => {
+      setSelectedPatient(event.detail);
+      setCurrentView('medical-records-manager');
+    };
+    
+    window.addEventListener('navigate-to-prescription-manager', handleNavigateToPrescriptionManager);
+    window.addEventListener('navigate-to-medical-records', handleNavigateToMedicalRecords);
+    
+    return () => {
+      window.removeEventListener('navigate-to-prescription-manager', handleNavigateToPrescriptionManager);
+      window.removeEventListener('navigate-to-medical-records', handleNavigateToMedicalRecords);
+    };
   }, [userRole]);
 
   const loadPatients = async () => {
@@ -36,110 +62,129 @@ const Dashboard = () => {
     } catch (error) {
       console.error('Failed to load patients:', error);
     }
-  };
-
-  const loadDashboardData = () => {
-    if (userRole === 'patient') {
-      setAppointments([
-        {
-          id: 'apt001',
-          doctorName: 'Dr. Smith',
-          department: 'Cardiology',
-          date: new Date().toLocaleDateString(),
-          time: '9:00 AM - 9:30 AM',
-          type: 'Regular Checkup',
-          status: 'Confirmed'
-        },
-        {
-          id: 'apt002',
-          doctorName: 'Dr. Johnson',
-          department: 'Neurology',
-          date: new Date(Date.now() + 86400000).toLocaleDateString(),
-          time: '2:00 PM - 2:30 PM',
-          type: 'Follow-up',
-          status: 'Pending'
-        }
-      ]);
+  };  const loadDashboardData = async () => {
+    try {
+      setLoading(true);
       
-      setPrescriptions([
-        {
-          id: 'rx001',
-          prescriptionNumber: 'RX001',
-          doctorName: 'Dr. Smith',
-          medications: ['Paracetamol 500mg - 3 times daily', 'Amoxicillin 250mg - 2 times daily'],
-          date: new Date().toLocaleDateString(),
-          status: 'Active'
-        }
-      ]);
-        setOrders([
-        {
-          id: 'ord001',
-          orderNumber: 'ORD001',
-          medications: ['Paracetamol 500mg × 20 tablets', 'Amoxicillin 250mg × 14 capsules'],
-          date: new Date().toLocaleDateString(),
-          status: 'Processing'
-        }
-      ]);
-    } else {
-      setOrders([
-        {
-          id: 'ord001',
-          orderNumber: 'ORD001',
-          patientName: patients[0]?.firstName && patients[0]?.lastName ? 
-            `${patients[0].firstName} ${patients[0].lastName}` : 'John Doe',
-          patientId: patients[0]?.patientId || 'PAT123456',
-          medications: ['Paracetamol 500mg × 20 tablets', 'Amoxicillin 250mg × 14 capsules'],
-          date: new Date().toLocaleDateString(),
-          status: 'Processing'
-        },
-        {
-          id: 'ord002',
-          orderNumber: 'ORD002',
-          patientName: patients[1]?.firstName && patients[1]?.lastName ? 
-            `${patients[1].firstName} ${patients[1].lastName}` : 'Jane Smith',
-          patientId: patients[1]?.patientId || 'PAT123457',
-          medications: ['Ibuprofen 400mg × 30 tablets'],
-          date: new Date(Date.now() - 86400000).toLocaleDateString(),
-          status: 'Ready'
-        }
-      ]);
+      const appointmentsData = await loadAppointments();
+      setAppointments(appointmentsData);
       
-      setPrescriptions([
-        {
-          id: 'rx001',
-          prescriptionNumber: 'RX001',
-          patientName: patients[0]?.firstName && patients[0]?.lastName ? 
-            `${patients[0].firstName} ${patients[0].lastName}` : 'John Doe',
-          patientId: patients[0]?.patientId || 'PAT123456',
-          medications: ['Paracetamol 500mg - 3 times daily', 'Amoxicillin 250mg - 2 times daily'],
-          date: new Date().toLocaleDateString(),
-          status: 'Active'
-        }
-      ]);
-      setAppointments([
-        {
-          id: 'apt001',
-          patientName: patients[0]?.firstName && patients[0]?.lastName ? 
-            `${patients[0].firstName} ${patients[0].lastName}` : 'John Doe',
-          patientId: patients[0]?.patientId || 'PAT123456',
-          date: new Date().toLocaleDateString(),
-          time: '9:00 AM - 9:30 AM',
-          type: 'Regular Checkup',
-          status: 'Confirmed'
-        },
-        {
-          id: 'apt002',
-          patientName: patients[1]?.firstName && patients[1]?.lastName ? 
-            `${patients[1].firstName} ${patients[1].lastName}` : 'Jane Smith',
-          patientId: patients[1]?.patientId || 'PAT123457',
-          date: new Date().toLocaleDateString(),
-          time: '10:00 AM - 10:30 AM',
-          type: 'Follow-up',
-          status: 'Pending'
-        }
-      ]);
+      const prescriptionsData = await loadPrescriptions();
+      setPrescriptions(prescriptionsData);
+      let ordersData = [];
+      if (userRole === 'pharmacy') {
+        ordersData = await loadOrders();
+        setOrders(ordersData);
+      }
+      
+      const allUsersData = await loadAllUsers();
+      setStats(prev => ({
+        ...prev,
+        totalAppointments: appointmentsData.length,
+        pendingOrders: userRole === 'pharmacy' ? ordersData.filter(order => order.status === 'pending').length : 0,
+        activeStaff: allUsersData.filter(user => user.role !== 'patient' && user.isActive).length
+      }));
+      
+    } catch (error) {
+      console.error('Failed to load dashboard data:', error);
+    } finally {
+      setLoading(false);
     }
   };
+
+  const loadAppointments = async () => {
+    try {
+      let appointmentsQuery;
+      
+      if (userRole === 'patient') {
+        appointmentsQuery = query(
+          collection(db, 'appointments'),
+          where('patientId', '==', userDetails?.patientId || ''),
+          orderBy('date', 'desc'),
+          limit(10)
+        );
+      } else if (userRole === 'doctor') {
+        appointmentsQuery = query(
+          collection(db, 'appointments'),
+          where('doctorId', '==', userDetails?.staffId || ''),
+          orderBy('date', 'desc'),
+          limit(10)
+        );
+      } else {
+        appointmentsQuery = query(
+          collection(db, 'appointments'),
+          orderBy('date', 'desc'),
+          limit(10)
+        );
+      }
+      
+      const appointmentsSnapshot = await getDocs(appointmentsQuery);
+      return appointmentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error('Error loading appointments:', error);
+      return [];
+    }
+  };
+
+  const loadPrescriptions = async () => {
+    try {
+      let prescriptionsQuery;
+      
+      if (userRole === 'patient') {
+        prescriptionsQuery = query(
+          collection(db, 'prescriptions'),
+          where('patientId', '==', userDetails?.patientId || ''),
+          orderBy('date', 'desc'),
+          limit(10)
+        );
+      } else if (userRole === 'doctor') {
+        prescriptionsQuery = query(
+          collection(db, 'prescriptions'),
+          where('doctorId', '==', userDetails?.staffId || ''),
+          orderBy('date', 'desc'),
+          limit(10)
+        );
+      } else {
+        prescriptionsQuery = query(
+          collection(db, 'prescriptions'),
+          orderBy('date', 'desc'),
+          limit(10)
+        );
+      }
+      
+      const prescriptionsSnapshot = await getDocs(prescriptionsQuery);
+      return prescriptionsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error('Error loading prescriptions:', error);
+      return [];
+    }
+  };
+
+  const loadOrders = async () => {
+    try {
+      const ordersQuery = query(
+        collection(db, 'pharmacy_orders'),
+        orderBy('orderDate', 'desc'),
+        limit(10)
+      );
+      
+      const ordersSnapshot = await getDocs(ordersQuery);
+      return ordersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error('Error loading orders:', error);
+      return [];
+    }
+  };
+
+  const loadAllUsers = async () => {
+    try {
+      const usersSnapshot = await getDocs(collection(db, 'users'));
+      return usersSnapshot.docs.map(doc => doc.data());
+    } catch (error) {
+      console.error('Error loading users:', error);
+      return [];
+    }  };
+
   const handleLogout = async () => {
     try {
       await logout();
@@ -156,25 +201,47 @@ const Dashboard = () => {
   const handleClosePatientDetails = () => {
     setSelectedPatient(null);
     setShowPatientDetails(false);
-  };
-  const renderCurrentView = () => {
+  };  const renderCurrentView = () => {
     switch (currentView) {
       case 'register-patient':
         return <PatientRegister onBack={() => setCurrentView('dashboard')} />;
       case 'view-patients':
         return renderPatientsView();
       case 'appointments':
-        return renderAppointmentsView();      case 'schedule-appointment':
+        return renderAppointmentsView();
+      case 'schedule-appointment':
         return <AppointmentScheduler 
           onBack={() => setCurrentView('appointments')} 
           selectedPatient={selectedPatient}
         />;
+      case 'emergency-slots':
+        return <EmergencySlotManager 
+          onBack={() => setCurrentView('appointments')} 
+        />;
       case 'prescriptions':
-        return renderPrescriptionsView();
+        return <PrescriptionManager 
+          onBack={() => setCurrentView('dashboard')} 
+        />;
+      case 'prescription-manager':
+        return <PrescriptionManager 
+          onBack={() => setCurrentView('dashboard')} 
+          selectedPatient={selectedPatient}
+        />;
+      case 'pharmacy-manager':
+        return <PharmacyManager 
+          onBack={() => setCurrentView('dashboard')} 
+        />;
       case 'orders':
         return renderOrdersView();
       case 'medical-records':
-        return renderMedicalRecordsView();
+        return <MedicalRecordsManager 
+          onBack={() => setCurrentView('dashboard')} 
+        />;
+      case 'medical-records-manager':
+        return <MedicalRecordsManager 
+          onBack={() => setCurrentView('dashboard')} 
+          selectedPatient={selectedPatient}
+        />;
       default:
         return getDashboardContent();
     }
@@ -236,79 +303,275 @@ const Dashboard = () => {
         </div>
       </div>
     </div>
-  );
+  );  const renderAppointmentsView = () => {
+    const today = new Date();
+    const todayStr = today.getFullYear() + '-' + 
+                     String(today.getMonth() + 1).padStart(2, '0') + '-' + 
+                     String(today.getDate()).padStart(2, '0');
+    
+    const todayAppointments = appointments.filter(apt => {
+      console.log('Appointment date:', apt.date, 'Today string:', todayStr);
+      return apt.date === todayStr;
+    });
+    const upcomingAppointments = appointments.filter(apt => {
+      const aptDate = new Date(apt.date);
+      return aptDate > today;
+    });
+    const emergencySlots = appointments.filter(apt => apt.isEmergency);
 
-  const renderAppointmentsView = () => (
-    <div className="max-w-7xl mx-auto px-6 py-8">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-3xl font-bold text-gray-800">Appointments</h2>
-        <button
-          onClick={() => setCurrentView('dashboard')}
-          className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition duration-200"
-        >
-          Back to Dashboard
-        </button>
-      </div>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <div className="bg-white rounded-xl shadow-lg p-6">            <h3 className="text-xl font-semibold text-gray-800 mb-4">Today's Schedule</h3>
-            <div className="space-y-4">
-              {appointments.map((appointment) => (
-                <div key={appointment.id} className={`border-l-4 ${
-                  appointment.status === 'Confirmed' ? 'border-blue-500' : 
-                  appointment.status === 'Pending' ? 'border-yellow-500' : 'border-gray-500'
-                } pl-4 py-2`}>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h4 className="font-semibold text-gray-800">
-                        {userRole === 'patient' ? appointment.doctorName : appointment.patientName}
-                      </h4>
-                      <p className="text-gray-600">
-                        {userRole === 'patient' ? appointment.department : `${appointment.patientId} • ${appointment.type}`}
-                      </p>
-                      <p className="text-sm text-gray-500">{appointment.time}</p>
+    return (
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h2 className="text-3xl font-bold text-gray-800">
+              {userRole === 'doctor' ? 'My Appointments & Schedule' : 'Appointments'}
+            </h2>
+            <p className="text-gray-600 mt-1">
+              {userRole === 'doctor' 
+                ? 'Manage your patient appointments and emergency slots' 
+                : 'View and manage appointments'
+              }
+            </p>
+          </div>
+          <button
+            onClick={() => setCurrentView('dashboard')}
+            className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition duration-200"
+          >
+            Back to Dashboard
+          </button>
+        </div>
+
+        {userRole === 'doctor' && (
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-6">
+            <div className="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">
+              <h3 className="font-semibold text-blue-800">Today's Appointments</h3>
+              <p className="text-2xl font-bold text-blue-600">{todayAppointments.length}</p>
+            </div>
+            <div className="bg-green-50 p-4 rounded-lg border-l-4 border-green-500">
+              <h3 className="font-semibold text-green-800">Confirmed</h3>
+              <p className="text-2xl font-bold text-green-600">
+                {appointments.filter(apt => apt.status === 'Confirmed').length}
+              </p>
+            </div>
+            <div className="bg-red-50 p-4 rounded-lg border-l-4 border-red-500">
+              <h3 className="font-semibold text-red-800">Emergency Slots</h3>
+              <p className="text-2xl font-bold text-red-600">{emergencySlots.length}</p>
+            </div>
+            <div className="bg-yellow-50 p-4 rounded-lg border-l-4 border-yellow-500">
+              <h3 className="font-semibold text-yellow-800">Pending</h3>
+              <p className="text-2xl font-bold text-yellow-600">
+                {appointments.filter(apt => apt.status === 'Pending').length}
+              </p>
+            </div>
+          </div>
+        )}
+        
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-6">
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-semibold text-gray-800">Today's Schedule</h3>
+                <span className="text-sm text-gray-500">{new Date().toLocaleDateString()}</span>
+              </div>
+              <div className="space-y-3">
+                {todayAppointments.map((appointment) => (
+                  <div key={appointment.id} className={`border-l-4 ${
+                    appointment.isEmergency ? 'border-red-500 bg-red-50' :
+                    appointment.status === 'Confirmed' ? 'border-blue-500' : 
+                    appointment.status === 'Pending' ? 'border-yellow-500' : 
+                    appointment.status === 'In Progress' ? 'border-green-500' : 'border-gray-500'
+                  } pl-4 py-3 rounded-r-lg`}>
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-semibold text-gray-800">
+                            {userRole === 'patient' ? appointment.doctorName : appointment.patientName}
+                          </h4>
+                          {appointment.isEmergency && (
+                            <span className="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full font-medium">
+                              🚨 EMERGENCY
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-gray-600 text-sm">
+                          {userRole === 'patient' ? appointment.department : 
+                           `${appointment.patientId} • ${appointment.type}`}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          {appointment.time} {appointment.duration && `(${appointment.duration})`}
+                        </p>
+                        {appointment.notes && (
+                          <p className="text-xs text-gray-500 mt-1 italic">{appointment.notes}</p>
+                        )}
+                      </div>
+                      <div className="flex flex-col items-end gap-2">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          appointment.status === 'Confirmed' ? 'bg-green-100 text-green-800' :
+                          appointment.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
+                          appointment.status === 'In Progress' ? 'bg-blue-100 text-blue-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {appointment.status}
+                        </span>                        {userRole === 'doctor' && (
+                          <div className="flex gap-1">
+                            <button 
+                              onClick={() => alert(`Viewing appointment details for ${appointment.patientName}\nTime: ${appointment.time}\nType: ${appointment.type}\nNotes: ${appointment.notes}`)}
+                              className="text-blue-600 hover:text-blue-800 text-xs px-2 py-1 bg-blue-50 rounded"
+                            >
+                              View
+                            </button>
+                            <button 
+                              onClick={() => {
+                                const updated = appointments.map(apt => 
+                                  apt.id === appointment.id ? {...apt, status: 'In Progress'} : apt
+                                );
+                                setAppointments(updated);
+                                alert(`Started appointment with ${appointment.patientName}`);
+                              }}
+                              className="text-green-600 hover:text-green-800 text-xs px-2 py-1 bg-green-50 rounded"
+                            >
+                              Start
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <span className={`px-2 py-1 rounded-full text-sm ${
-                      appointment.status === 'Confirmed' ? 'bg-green-100 text-green-800' :
-                      appointment.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
-                      {appointment.status}
-                    </span>
+                  </div>
+                ))}
+                {todayAppointments.length === 0 && (
+                  <div className="text-center py-8 text-gray-500">
+                    No appointments scheduled for today.
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {upcomingAppointments.length > 0 && (
+              <div className="bg-white rounded-xl shadow-lg p-6">
+                <h3 className="text-xl font-semibold text-gray-800 mb-4">Upcoming Appointments</h3>
+                <div className="space-y-3">
+                  {upcomingAppointments.slice(0, 5).map((appointment) => (
+                    <div key={appointment.id} className={`border-l-4 ${
+                      appointment.status === 'Confirmed' ? 'border-blue-500' : 
+                      appointment.status === 'Pending' ? 'border-yellow-500' : 'border-gray-500'
+                    } pl-4 py-2`}>
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h4 className="font-semibold text-gray-800">
+                            {userRole === 'patient' ? appointment.doctorName : appointment.patientName}
+                          </h4>
+                          <p className="text-gray-600 text-sm">
+                            {userRole === 'patient' ? appointment.department : 
+                             `${appointment.patientId} • ${appointment.type}`}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            {appointment.date} at {appointment.time}
+                          </p>
+                        </div>
+                        <span className={`px-2 py-1 rounded-full text-xs ${
+                          appointment.status === 'Confirmed' ? 'bg-green-100 text-green-800' :
+                          appointment.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {appointment.status}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          
+          <div className="space-y-6">
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <h3 className="text-xl font-semibold text-gray-800 mb-4">Quick Actions</h3>
+              <div className="space-y-3">
+                {(userRole === 'receptionist' || userRole === 'doctor') && (
+                  <button 
+                    onClick={() => setCurrentView('schedule-appointment')}
+                    className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition duration-200"
+                  >
+                    📅 Schedule New Appointment
+                  </button>
+                )}                {userRole === 'doctor' && (
+                  <>
+                    <button 
+                      onClick={() => setCurrentView('emergency-slots')}
+                      className="w-full bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition duration-200"
+                    >
+                      🚨 Manage Emergency Slots
+                    </button>
+                    <button 
+                      onClick={() => setCurrentView('prescription-manager')}
+                      className="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition duration-200"
+                    >
+                      📝 Manage Prescriptions
+                    </button>
+                    <button 
+                      onClick={() => setCurrentView('medical-records-manager')}
+                      className="w-full bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition duration-200"
+                    >
+                      📋 Medical Records
+                    </button>
+                  </>
+                )}
+                <button className="w-full bg-gray-600 text-white py-2 px-4 rounded-lg hover:bg-gray-700 transition duration-200">
+                  📊 View All Appointments
+                </button>
+              </div>
+            </div>
+
+            {userRole === 'doctor' && emergencySlots.length > 0 && (
+              <div className="bg-red-50 rounded-xl shadow-lg p-6 border-l-4 border-red-500">
+                <h3 className="text-xl font-semibold text-red-800 mb-4">🚨 Emergency Slots</h3>
+                <div className="space-y-3">
+                  {emergencySlots.map((appointment) => (
+                    <div key={appointment.id} className="bg-white p-3 rounded-lg border border-red-200">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h4 className="font-semibold text-gray-800">{appointment.patientName}</h4>
+                          <p className="text-sm text-gray-600">{appointment.patientId}</p>
+                          <p className="text-sm text-red-600 font-medium">{appointment.notes}</p>
+                        </div>
+                        <span className="text-xs text-red-600 bg-red-100 px-2 py-1 rounded">
+                          {appointment.status}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {userRole === 'doctor' && (
+              <div className="bg-blue-50 rounded-xl shadow-lg p-6 border-l-4 border-blue-500">
+                <h3 className="text-xl font-semibold text-blue-800 mb-4">📊 Schedule Summary</h3>
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Working Hours:</span>
+                    <span className="font-semibold">9:00 AM - 5:00 PM</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Break Time:</span>
+                    <span className="font-semibold">12:00 PM - 1:00 PM</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Total Patients Today:</span>
+                    <span className="font-semibold">{todayAppointments.length}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Available Slots:</span>
+                    <span className="font-semibold text-green-600">3 remaining</span>
                   </div>
                 </div>
-              ))}
-              {appointments.length === 0 && (
-                <div className="text-center py-8 text-gray-500">
-                  No appointments scheduled for today.
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-        
-        <div>
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <h3 className="text-xl font-semibold text-gray-800 mb-4">Quick Actions</h3>            <div className="space-y-3">
-              <button 
-                onClick={() => setCurrentView('schedule-appointment')}
-                className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition duration-200"
-              >
-                Schedule New Appointment
-              </button>
-              <button className="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition duration-200">
-                View All Appointments
-              </button>
-              <button className="w-full bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition duration-200">
-                Emergency Slot
-              </button>
-            </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderPrescriptionsView = () => (
     <div className="max-w-7xl mx-auto px-6 py-8">
@@ -425,11 +688,22 @@ const Dashboard = () => {
                     ))}
                   </div>
                   {userRole === 'pharmacy' && (
-                    <div className="mt-3 flex space-x-2">
-                      <button className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 transition duration-200">
+                    <div className="mt-3 flex space-x-2">                      <button 
+                        onClick={() => {
+                          const updated = orders.map(ord => 
+                            ord.id === order.id ? {...ord, status: 'Ready'} : ord
+                          );
+                          setOrders(updated);
+                          alert('Order marked as ready for pickup!');
+                        }}
+                        className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 transition duration-200"
+                      >
                         Mark Ready
                       </button>
-                      <button className="bg-gray-600 text-white px-3 py-1 rounded text-sm hover:bg-gray-700 transition duration-200">
+                      <button 
+                        onClick={() => alert(`Order Details:\n${order.medications.join('\n')}\nPatient: ${order.patientName}\nDate: ${order.date}`)}
+                        className="bg-gray-600 text-white px-3 py-1 rounded text-sm hover:bg-gray-700 transition duration-200"
+                      >
                         View Details
                       </button>
                     </div>
@@ -525,8 +799,20 @@ const Dashboard = () => {
       </div>
     </div>
   );
-
   const getDashboardContent = () => {
+    const getTodaysAppointments = () => {
+      const today = new Date();
+      const todayStr = today.getFullYear() + '-' + 
+                       String(today.getMonth() + 1).padStart(2, '0') + '-' + 
+                       String(today.getDate()).padStart(2, '0');
+      console.log('Today string for dashboard:', todayStr);
+      const todaysApts = appointments.filter(apt => {
+        console.log('Dashboard appointment date:', apt.date, 'matches today:', apt.date === todayStr);
+        return apt.date === todayStr;
+      });
+      return todaysApts;
+    };
+
     switch (userRole) {
       case 'patient':
         return (
@@ -555,12 +841,11 @@ const Dashboard = () => {
                 >
                   View Appointments
                 </button>
-              </div>
-              <div className="bg-white p-6 rounded-xl shadow-lg border transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+              </div>              <div className="bg-white p-6 rounded-xl shadow-lg border transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
                 <h3 className="text-lg font-semibold text-gray-800 mb-3">Medical Records</h3>
                 <p className="text-gray-600 mb-4">Access your medical history and test results</p>
                 <button 
-                  onClick={() => setCurrentView('medical-records')}
+                  onClick={() => setCurrentView('medical-records-manager')}
                   className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white py-2 px-4 rounded-lg font-medium transition-all duration-300 hover:shadow-lg hover:shadow-green-500/30"
                 >
                   View Records
@@ -570,7 +855,7 @@ const Dashboard = () => {
                 <h3 className="text-lg font-semibold text-gray-800 mb-3">Prescriptions</h3>
                 <p className="text-gray-600 mb-4">View current and past prescriptions</p>
                 <button 
-                  onClick={() => setCurrentView('prescriptions')}
+                  onClick={() => setCurrentView('prescription-manager')}
                   className="w-full bg-gradient-to-r from-purple-500 to-purple-600 text-white py-2 px-4 rounded-lg font-medium transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/30"
                 >
                   View Prescriptions
@@ -625,12 +910,11 @@ const Dashboard = () => {
                 >
                   View Patients
                 </button>
-              </div>
-              <div className="bg-white p-6 rounded-xl shadow-lg border transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+              </div>              <div className="bg-white p-6 rounded-xl shadow-lg border transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
                 <h3 className="text-lg font-semibold text-gray-800 mb-3">Prescriptions</h3>
                 <p className="text-gray-600 mb-4">Create and manage prescriptions</p>
                 <button 
-                  onClick={() => setCurrentView('prescriptions')}
+                  onClick={() => setCurrentView('prescription-manager')}
                   className="w-full bg-gradient-to-r from-purple-500 to-purple-600 text-white py-2 px-4 rounded-lg font-medium transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/30"
                 >
                   Manage Prescriptions
@@ -640,7 +924,7 @@ const Dashboard = () => {
                 <h3 className="text-lg font-semibold text-gray-800 mb-3">Medical Records</h3>
                 <p className="text-gray-600 mb-4">Update patient medical records</p>
                 <button 
-                  onClick={() => setCurrentView('medical-records')}
+                  onClick={() => setCurrentView('medical-records-manager')}
                   className="w-full bg-gradient-to-r from-orange-500 to-orange-600 text-white py-2 px-4 rounded-lg font-medium transition-all duration-300 hover:shadow-lg hover:shadow-orange-500/30"
                 >
                   Medical Records
@@ -669,10 +953,9 @@ const Dashboard = () => {
                 <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-6 rounded-xl shadow-lg">
                   <h4 className="text-lg font-semibold mb-2">Total Patients</h4>
                   <p className="text-3xl font-bold">{stats.totalPatients}</p>
-                </div>
-                <div className="bg-gradient-to-r from-green-500 to-green-600 text-white p-6 rounded-xl shadow-lg">
+                </div>                <div className="bg-gradient-to-r from-green-500 to-green-600 text-white p-6 rounded-xl shadow-lg">
                   <h4 className="text-lg font-semibold mb-2">Today's Appointments</h4>
-                  <p className="text-3xl font-bold">{appointments.length}</p>
+                  <p className="text-3xl font-bold">{getTodaysAppointments().length}</p>
                 </div>
                 <div className="bg-gradient-to-r from-purple-500 to-purple-600 text-white p-6 rounded-xl shadow-lg">
                   <h4 className="text-lg font-semibold mb-2">Pending Orders</h4>
@@ -751,21 +1034,22 @@ const Dashboard = () => {
                 >
                   View Orders
                 </button>
-              </div>
-              <div className="bg-white p-6 rounded-xl shadow-lg border transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
-                <h3 className="text-lg font-semibold text-gray-800 mb-3">Prescriptions</h3>
-                <p className="text-gray-600 mb-4">Review and process prescriptions</p>
+              </div>              <div className="bg-white p-6 rounded-xl shadow-lg border transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+                <h3 className="text-lg font-semibold text-gray-800 mb-3">🏥 Pharmacy Manager</h3>
+                <p className="text-gray-600 mb-4">Manage prescriptions, notifications & deliveries</p>
                 <button 
-                  onClick={() => setCurrentView('prescriptions')}
+                  onClick={() => setCurrentView('pharmacy-manager')}
                   className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white py-2 px-4 rounded-lg font-medium transition-all duration-300 hover:shadow-lg hover:shadow-green-500/30"
                 >
-                  View Prescriptions
+                  Open Pharmacy Manager
                 </button>
               </div>
               <div className="bg-white p-6 rounded-xl shadow-lg border transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
                 <h3 className="text-lg font-semibold text-gray-800 mb-3">Inventory</h3>
-                <p className="text-gray-600 mb-4">Manage medicine inventory</p>
-                <button className="w-full bg-gradient-to-r from-purple-500 to-purple-600 text-white py-2 px-4 rounded-lg font-medium transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/30">
+                <p className="text-gray-600 mb-4">Manage medicine inventory</p>                <button 
+                  onClick={() => alert('Inventory management feature coming soon!\nCurrent stock levels will be displayed here.')}
+                  className="w-full bg-gradient-to-r from-purple-500 to-purple-600 text-white py-2 px-4 rounded-lg font-medium transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/30"
+                >
                   Manage Inventory
                 </button>
               </div>
@@ -792,7 +1076,7 @@ const Dashboard = () => {
     }
   };
   return (
-    <div className="min-h-screen bg-gray-50">      {/* Patient Details Modal */}
+    <div className="min-h-screen bg-gray-50">
       {showPatientDetails && selectedPatient && (
         <PatientDetails
           patient={selectedPatient}
