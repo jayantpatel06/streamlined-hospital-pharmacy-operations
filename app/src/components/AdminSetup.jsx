@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { loginInstructions, systemRoles } from '../utils/defaultData';
+import { loginInstructions, systemRoles } from '../utils/defaultData.js';
 
 const AdminSetup = ({ onClose }) => {
   const [loading, setLoading] = useState(false);
