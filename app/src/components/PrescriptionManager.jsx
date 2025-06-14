@@ -14,16 +14,17 @@ const PrescriptionManager = ({ onBack, selectedPatient }) => {
     patientName: selectedPatient ? `${selectedPatient.firstName} ${selectedPatient.lastName}` : '',
     medications: [{ name: '', dosage: '', quantity: '', duration: '' }],
     instructions: ''
-  });
-  const [showCreateForm, setShowCreateForm] = useState(false);
+  });  const [showCreateForm, setShowCreateForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedPrescription, setSelectedPrescription] = useState(null);
+  const [showPrescriptionDetails, setShowPrescriptionDetails] = useState(false);
   
   const [allPatients, setAllPatients] = useState([]);
   const [showPatientDropdown, setShowPatientDropdown] = useState(false);
   const [patientSearchTerm, setPatientSearchTerm] = useState('');
   const [filteredPatients, setFilteredPatients] = useState([]);
   
-  const { userRole, userDetails, createPrescription, createPharmacyNotification, createDeliveryTask, getPatients } = useAuth();
+  const { userRole, userDetails, createPrescriptionWithBilling, createPharmacyNotification, createDeliveryTask, getPatients } = useAuth();
   useEffect(() => {
     loadPrescriptions();
     if (userRole === 'doctor' || userRole === 'receptionist') {
@@ -118,13 +119,15 @@ const PrescriptionManager = ({ onBack, selectedPatient }) => {
           orderBy('createdAt', 'desc')
         );
       }
-      
-      const prescriptionsSnapshot = await getDocs(prescriptionsQuery);
-      setPrescriptions(prescriptionsSnapshot.docs.map(doc => ({ 
+        const prescriptionsSnapshot = await getDocs(prescriptionsQuery);
+      const loadedPrescriptions = prescriptionsSnapshot.docs.map(doc => ({ 
         id: doc.id, 
         ...doc.data(),
         date: new Date(doc.data().createdAt).toLocaleDateString() 
-      })));
+      }));
+      
+      console.log('Loaded prescriptions:', loadedPrescriptions);
+      setPrescriptions(loadedPrescriptions);
       
     } catch (err) {
       console.error("Error loading prescriptions:", err);
@@ -165,9 +168,10 @@ const PrescriptionManager = ({ onBack, selectedPatient }) => {
         currentPatient = allPatients.find(p => p.patientId === newPrescription.patientId);
       }
       
-      const isEmergencyPatient = currentPatient?.isEmergency || false;
-      const bedNumber = currentPatient?.bedNumber || '';
-      const location = currentPatient?.location || '';
+      const isAdmittedPatient = currentPatient?.isAdmitted || false;
+      const medicineDeliveryType = currentPatient?.medicineDeliveryType || 'pharmacy';
+      const bedNumber = currentPatient?.currentBedNumber || '';
+      const wardLocation = currentPatient?.currentWard || '';
       
       const prescriptionData = {
         ...newPrescription,
@@ -175,9 +179,10 @@ const PrescriptionManager = ({ onBack, selectedPatient }) => {
         doctorName: userRole === 'doctor' ? 
           `Dr. ${userDetails.firstName} ${userDetails.lastName}` : 
           'Dr. Smith',
-        isEmergency: isEmergencyPatient,
+        isAdmittedPatient: isAdmittedPatient,
+        medicineDeliveryType: medicineDeliveryType,
         bedNumber: bedNumber,
-        location: location,
+        wardLocation: wardLocation,
         medications: newPrescription.medications.map(med => ({
           ...med,
           status: 'prescribed',
@@ -185,27 +190,27 @@ const PrescriptionManager = ({ onBack, selectedPatient }) => {
         }))
       };
 
-      const createdPrescription = await createPrescription(prescriptionData);
-
-      await createPharmacyNotification({
+      const result = await createPrescriptionWithBilling(prescriptionData);
+      const createdPrescription = result.prescription;      await createPharmacyNotification({
         prescriptionId: createdPrescription.prescriptionId,
         patientId: prescriptionData.patientId,
         patientName: prescriptionData.patientName,
-        isEmergency: isEmergencyPatient,
+        isEmergency: medicineDeliveryType === 'bedside',
         bedNumber: bedNumber,
-        location: location,
-        medications: prescriptionData.medications
+        location: wardLocation,
+        medications: prescriptionData.medications,
+        deliveryType: medicineDeliveryType
       });
       
-      if (isEmergencyPatient && bedNumber && location) {
+      if (medicineDeliveryType === 'bedside' && bedNumber && wardLocation) {
         await createDeliveryTask({
           prescriptionId: createdPrescription.prescriptionId,
           patientId: prescriptionData.patientId,
           patientName: prescriptionData.patientName,
           bedNumber: bedNumber,
-          location: location,
+          location: wardLocation,
           medications: prescriptionData.medications,
-          deliveryInstructions: `Emergency delivery to ${location}, Bed ${bedNumber}`
+          deliveryInstructions: `Bedside delivery to ${wardLocation}, Bed ${bedNumber} - Emergency admission`
         });
       }
       
@@ -214,12 +219,15 @@ const PrescriptionManager = ({ onBack, selectedPatient }) => {
         ...createdPrescription,
         date: new Date().toLocaleDateString()
       }, ...prescriptions]);
-      
-      const workflowMessage = isEmergencyPatient 
+        const workflowMessage = isEmergencyPatient
         ? '✅ Prescription created! 🚨 Emergency delivery task assigned to pharmacy.'
         : '✅ Prescription created! 📱 Pharmacy has been notified.';
       
-      alert(workflowMessage);
+      const billingMessage = result.bill 
+        ? `\n💰 Bill created: ${result.bill.billId}\n💵 Total amount: $${result.bill.totalAmount.toFixed(2)}`
+        : '';
+      
+      alert(workflowMessage + billingMessage);
         setNewPrescription({
         patientId: selectedPatient?.patientId || '',
         patientName: selectedPatient ? `${selectedPatient.firstName} ${selectedPatient.lastName}` : '',
@@ -233,6 +241,17 @@ const PrescriptionManager = ({ onBack, selectedPatient }) => {
       setError("Failed to create prescription. Please try again.");    } finally {
       setLoading(false);
     }
+  };
+  const handleViewPrescriptionDetails = (prescription) => {
+    console.log('Viewing prescription details:', prescription);
+    setSelectedPrescription(prescription);
+    setShowPrescriptionDetails(true);
+  };
+
+  const closePrescriptionDetails = () => {
+    console.log('Closing prescription details');
+    setSelectedPrescription(null);
+    setShowPrescriptionDetails(false);
   };
 
   const filteredPrescriptions = prescriptions.filter(prescription =>
@@ -361,17 +380,43 @@ const PrescriptionManager = ({ onBack, selectedPatient }) => {
                             <p className="text-gray-500">No patients found matching "{patientSearchTerm}"</p>
                           </div>
                         )}
-                      </div>
-                        {newPrescription.patientId && (
+                      </div>                        {newPrescription.patientId && (
                         <div className="mt-3 p-3 bg-green-100 rounded-lg border border-green-300">
                           <div className="flex justify-between items-center">
-                            <p className="text-green-800">
-                              ✅ Selected Patient: <strong>{newPrescription.patientName}</strong> (ID: {newPrescription.patientId})
-                            </p>
+                            <div className="flex-1">
+                              <p className="text-green-800">
+                                ✅ Selected Patient: <strong>{newPrescription.patientName}</strong> (ID: {newPrescription.patientId})
+                              </p>
+                              {(() => {
+                                const patient = allPatients.find(p => p.patientId === newPrescription.patientId);
+                                if (patient?.isAdmitted) {
+                                  return (
+                                    <div className="mt-2 p-2 bg-red-50 rounded border border-red-200">
+                                      <p className="text-red-800 font-medium">🏥 ADMITTED PATIENT</p>
+                                      <p className="text-sm text-red-700">
+                                        Bed: {patient.currentBedNumber} | Ward: {patient.currentWard}
+                                      </p>
+                                      <p className="text-sm text-red-600">
+                                        📦 Medicines will be delivered to bedside
+                                      </p>
+                                    </div>
+                                  );
+                                } else {
+                                  return (
+                                    <div className="mt-2 p-2 bg-blue-50 rounded border border-blue-200">
+                                      <p className="text-blue-800 font-medium">🏥 OUTPATIENT</p>
+                                      <p className="text-sm text-blue-600">
+                                        🏪 Patient will collect medicines from pharmacy
+                                      </p>
+                                    </div>
+                                  );
+                                }
+                              })()}
+                            </div>
                             <button
                               type="button"
                               onClick={clearPatientSelection}
-                              className="text-red-600 hover:text-red-800 font-medium text-sm"
+                              className="text-red-600 hover:text-red-800 font-medium text-sm ml-4"
                             >
                               ✕ Clear
                             </button>
@@ -542,10 +587,23 @@ const PrescriptionManager = ({ onBack, selectedPatient }) => {
                   </div>
                 </form>
               </div>
-            )}
-
-            <div className="space-y-4">
-              {filteredPrescriptions.map((prescription) => (
+            )}            <div className="space-y-4">
+              {loading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                  <p className="mt-2 text-gray-600">Loading prescriptions...</p>
+                </div>
+              ) : filteredPrescriptions.length === 0 ? (
+                <div className="text-center py-8">
+                  <div className="text-gray-400 text-6xl mb-4">📋</div>
+                  <h3 className="text-xl font-semibold text-gray-600 mb-2">No Prescriptions Found</h3>
+                  <p className="text-gray-500">
+                    {searchTerm ? `No prescriptions match "${searchTerm}"` : 'No prescriptions available.'}
+                  </p>
+                  <p className="text-gray-400 text-sm mt-2">Total prescriptions loaded: {prescriptions.length}</p>
+                </div>
+              ) : (
+                filteredPrescriptions.map((prescription) => (
                 <div key={prescription.id} className="border border-gray-200 rounded-lg p-4">
                   <div className="flex justify-between items-start mb-3">
                     <div>
@@ -580,7 +638,10 @@ const PrescriptionManager = ({ onBack, selectedPatient }) => {
                   )}
 
                   <div className="flex gap-2">
-                    <button className="text-blue-600 hover:text-blue-800 text-sm px-3 py-1 bg-blue-50 rounded">
+                    <button 
+                      onClick={() => handleViewPrescriptionDetails(prescription)}
+                      className="text-blue-600 hover:text-blue-800 text-sm px-3 py-1 bg-blue-50 rounded"
+                    >
                       View Details
                     </button>
                     <button 
@@ -601,10 +662,10 @@ const PrescriptionManager = ({ onBack, selectedPatient }) => {
                       >
                         Cancel
                       </button>
-                    )}
-                  </div>
+                    )}                  </div>
                 </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
         </div>
@@ -679,7 +740,164 @@ const PrescriptionManager = ({ onBack, selectedPatient }) => {
             </div>
           </div>
         </div>
-      </div>
+      </div>      {showPrescriptionDetails && selectedPrescription && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-200 p-6 rounded-t-lg">
+              <div className="flex justify-between items-center">
+                <h3 className="text-2xl font-bold text-gray-800">📋 Prescription Details</h3>
+                <button
+                  onClick={closePrescriptionDetails}
+                  className="text-gray-500 hover:text-gray-700 text-2xl font-bold p-2 hover:bg-gray-100 rounded-full transition duration-200"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6">
+              {/* Patient Information */}
+              <div className="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500 mb-6">
+                <h4 className="font-semibold text-blue-800 mb-3">Patient Information</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-blue-700"><strong>Name:</strong> {selectedPrescription.patientName}</p>
+                    <p className="text-sm text-blue-700"><strong>Patient ID:</strong> {selectedPrescription.patientId}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-blue-700"><strong>Date:</strong> {selectedPrescription.date}</p>
+                    <p className="text-sm text-blue-700"><strong>Doctor:</strong> {selectedPrescription.doctorName}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Prescription Information */}
+              <div className="bg-green-50 p-4 rounded-lg border-l-4 border-green-500 mb-6">
+                <h4 className="font-semibold text-green-800 mb-3">Prescription Information</h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <p className="text-sm text-green-700"><strong>Prescription ID:</strong> {selectedPrescription.prescriptionId}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-green-700"><strong>Status:</strong> 
+                      <span className={`ml-2 px-2 py-1 rounded-full text-xs ${getStatusColor(selectedPrescription.status)}`}>
+                        {selectedPrescription.status}
+                      </span>
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-green-700"><strong>Emergency:</strong> {selectedPrescription.isEmergency ? 'Yes' : 'No'}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Medications */}
+              <div className="mb-6">
+                <h4 className="font-semibold text-gray-800 mb-4">💊 Prescribed Medications</h4>
+                <div className="space-y-4">
+                  {selectedPrescription.medications?.map((med, index) => (
+                    <div key={index} className="p-4 bg-gray-50 rounded-lg border border-gray-200 hover:shadow-md transition-shadow">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                        <div>
+                          <p className="text-xs text-gray-500 uppercase tracking-wide">Medicine</p>
+                          <p className="font-medium text-gray-800">{med.name}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500 uppercase tracking-wide">Dosage</p>
+                          <p className="font-medium text-gray-800">{med.dosage}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500 uppercase tracking-wide">Quantity</p>
+                          <p className="font-medium text-gray-800">{med.quantity}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500 uppercase tracking-wide">Duration</p>
+                          <p className="font-medium text-gray-800">{med.duration}</p>
+                        </div>
+                      </div>
+                      {med.status && (
+                        <div className="mt-2 pt-2 border-t border-gray-200">
+                          <p className="text-xs text-gray-500">Status: 
+                            <span className={`ml-1 px-2 py-1 rounded text-xs ${
+                              med.status === 'dispensed' ? 'bg-green-100 text-green-800' :
+                              med.status === 'preparing' ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-gray-100 text-gray-800'
+                            }`}>
+                              {med.status}
+                            </span>
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Instructions */}
+              {selectedPrescription.instructions && (
+                <div className="bg-yellow-50 p-4 rounded-lg border-l-4 border-yellow-500 mb-6">
+                  <h4 className="font-semibold text-yellow-800 mb-2">📝 Special Instructions</h4>
+                  <p className="text-yellow-700 whitespace-pre-wrap">{selectedPrescription.instructions}</p>
+                </div>
+              )}
+
+              {/* Emergency Information */}
+              {selectedPrescription.isEmergency && (
+                <div className="bg-red-50 p-4 rounded-lg border-l-4 border-red-500 mb-6">
+                  <h4 className="font-semibold text-red-800 mb-2">🚨 Emergency Prescription</h4>
+                  <p className="text-red-700">This is an emergency prescription that requires immediate attention.</p>
+                  {selectedPrescription.bedNumber && (
+                    <p className="text-red-700 mt-1"><strong>Bed Number:</strong> {selectedPrescription.bedNumber}</p>
+                  )}
+                  {selectedPrescription.location && (
+                    <p className="text-red-700 mt-1"><strong>Location:</strong> {selectedPrescription.location}</p>
+                  )}
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-gray-200">
+                <button
+                  onClick={() => {
+                    window.print();
+                  }}
+                  className="flex-1 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition duration-200 font-medium"
+                >
+                  🖨️ Print Prescription
+                </button>
+                <button
+                  onClick={() => {
+                    const prescriptionText = `
+                      Prescription Details:
+                      Patient: ${selectedPrescription.patientName} (ID: ${selectedPrescription.patientId})
+                      Doctor: ${selectedPrescription.doctorName}
+                      Date: ${selectedPrescription.date}
+
+                      Medications:
+                      ${selectedPrescription.medications?.map(med => 
+                        `- ${med.name}: ${med.dosage}, Qty: ${med.quantity}, Duration: ${med.duration}`
+                      ).join('\n')}
+
+                      ${selectedPrescription.instructions ? `Instructions: ${selectedPrescription.instructions}` : ''}
+                    `;
+                    navigator.clipboard.writeText(prescriptionText);
+                    alert('✅ Prescription details copied to clipboard!');
+                  }}
+                  className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition duration-200 font-medium"
+                >
+                  📋 Copy Details
+                </button>
+                <button
+                  onClick={closePrescriptionDetails}
+                  className="flex-1 bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600 transition duration-200 font-medium"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

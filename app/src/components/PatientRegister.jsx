@@ -13,17 +13,14 @@ const PatientRegister = ({ onBack }) => {  const [formData, setFormData] = useSt
     emergencyContact: '',
     bloodGroup: '',
     allergies: '',
-    medicalHistory: '',
-    isEmergency: false,
-    bedNumber: '',
-    location: ''
+    medicalHistory: ''
   });const [error, setError] = useState('');
   const [success, setSuccess] = useState(null);
   const [loading, setLoading] = useState(false);
   const [showCredentials, setShowCredentials] = useState(false);
   const [showAppointmentScheduler, setShowAppointmentScheduler] = useState(false);
 
-  const { registerPatient, userRole } = useAuth();  const handleSubmit = async (e) => {
+  const { registerPatientForHospital, userRole } = useAuth();  const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (userRole !== 'receptionist') {
@@ -36,7 +33,7 @@ const PatientRegister = ({ onBack }) => {  const [formData, setFormData] = useSt
       setSuccess(null);
       setLoading(true);
       
-      const result = await registerPatient(formData);
+      const result = await registerPatientForHospital(formData);
       setSuccess({
         patientId: result.patientId,
         tempPassword: result.tempPassword,
@@ -269,68 +266,12 @@ const PatientRegister = ({ onBack }) => {  const [formData, setFormData] = useSt
           </div>          <div className="mb-6">
             <label htmlFor="medicalHistory" className="block mb-2 text-gray-700 font-medium">Medical History:</label>
             <textarea
-              id="medicalHistory"
-              name="medicalHistory"
-              value={formData.medicalHistory}
+              id="medicalHistory"              name="medicalHistory"              value={formData.medicalHistory}
               onChange={handleChange}
               rows="3"
               placeholder="Brief medical history, previous surgeries, chronic conditions, etc."
               className="w-full p-3 border-2 border-gray-200 rounded-lg transition-all duration-300 focus:outline-none focus:border-blue-500 focus:shadow-lg focus:shadow-blue-500/20 focus:-translate-y-0.5"
             />
-          </div>
-
-          <div className="mb-6 p-4 border-2 border-red-200 rounded-lg bg-red-50">
-            <div className="flex items-center mb-4">
-              <input
-                type="checkbox"
-                id="isEmergency"
-                name="isEmergency"
-                checked={formData.isEmergency}
-                onChange={handleChange}
-                className="mr-3 w-5 h-5 text-red-600 border-red-300 rounded focus:ring-red-500"
-              />
-              <label htmlFor="isEmergency" className="text-red-700 font-semibold text-lg">
-                🚨 Emergency Registration
-              </label>
-            </div>
-            
-            {formData.isEmergency && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                <div>
-                  <label htmlFor="bedNumber" className="block mb-2 text-red-700 font-medium">Bed Number:</label>
-                  <input
-                    type="text"
-                    id="bedNumber"
-                    name="bedNumber"
-                    value={formData.bedNumber}
-                    onChange={handleChange}
-                    placeholder="e.g., ICU-101, Ward-A-205"
-                    className="w-full p-3 border-2 border-red-300 rounded-lg transition-all duration-300 focus:outline-none focus:border-red-500 focus:shadow-lg focus:shadow-red-500/20 focus:-translate-y-0.5"
-                    required={formData.isEmergency}
-                  />
-                </div>
-                <div>
-                  <label htmlFor="location" className="block mb-2 text-red-700 font-medium">Hospital Location:</label>
-                  <select
-                    id="location"
-                    name="location"
-                    value={formData.location}
-                    onChange={handleChange}
-                    className="w-full p-3 border-2 border-red-300 rounded-lg transition-all duration-300 focus:outline-none focus:border-red-500 focus:shadow-lg focus:shadow-red-500/20 focus:-translate-y-0.5"
-                    required={formData.isEmergency}
-                  >
-                    <option value="">Select Location</option>
-                    <option value="Emergency Ward">Emergency Ward</option>
-                    <option value="ICU - Floor 3">ICU - Floor 3</option>
-                    <option value="General Ward - Floor 1">General Ward - Floor 1</option>
-                    <option value="General Ward - Floor 2">General Ward - Floor 2</option>
-                    <option value="Pediatric Ward - Floor 2">Pediatric Ward - Floor 2</option>
-                    <option value="Maternity Ward - Floor 4">Maternity Ward - Floor 4</option>
-                    <option value="Surgical Ward - Floor 3">Surgical Ward - Floor 3</option>
-                  </select>
-                </div>
-              </div>
-            )}
           </div>
 
           <div className="flex flex-col md:flex-row gap-4">
@@ -340,7 +281,8 @@ const PatientRegister = ({ onBack }) => {  const [formData, setFormData] = useSt
             <button type="submit" disabled={loading} className="flex-2 p-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg font-semibold uppercase tracking-wide transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-blue-500/30 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none">
               {loading ? 'Registering Patient...' : 'Register Patient'}
             </button>
-          </div>        </form>
+          </div>
+        </form>
       </div>
     </div>
     </>

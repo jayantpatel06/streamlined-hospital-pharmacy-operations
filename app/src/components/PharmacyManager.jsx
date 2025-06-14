@@ -199,8 +199,7 @@ const PharmacyManager = ({ onBack }) => {
                 <div className="text-center py-8 bg-gray-50 rounded-lg">
                   <p className="text-gray-600">No pending notifications</p>
                 </div>
-              ) : (
-                notifications.map(notification => (
+              ) : (                notifications.map(notification => (
                   <div key={notification.id} className={`p-4 rounded-lg border-2 ${getPriorityColor(notification.priority)}`}>
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
@@ -209,12 +208,24 @@ const PharmacyManager = ({ onBack }) => {
                           <h4 className="font-semibold text-lg">{notification.patientName}</h4>
                           <span className="text-sm text-gray-500">({notification.patientId})</span>
                         </div>
-                        {notification.isEmergency && (
-                          <div className="mb-2 text-red-700">
-                            <p><strong>Location:</strong> {notification.location}</p>
-                            <p><strong>Bed:</strong> {notification.bedNumber}</p>
-                          </div>
-                        )}
+                        
+                        {/* Delivery Instructions */}
+                        <div className="mb-3 p-2 rounded-lg bg-gray-50 border border-gray-200">
+                          {notification.isEmergency ? (
+                            <div className="text-red-700">
+                              <p className="font-medium">🚚 BEDSIDE DELIVERY REQUIRED</p>
+                              <p><strong>Location:</strong> {notification.location}</p>
+                              <p><strong>Bed:</strong> {notification.bedNumber}</p>
+                              <p className="text-sm">Deliver medications directly to patient's bedside</p>
+                            </div>
+                          ) : (
+                            <div className="text-blue-700">
+                              <p className="font-medium">🏥 PHARMACY PICKUP</p>
+                              <p className="text-sm">Patient will collect from pharmacy counter</p>
+                            </div>
+                          )}
+                        </div>
+                        
                         <div className="mb-2">
                           <strong>Medications:</strong>
                           <ul className="list-disc list-inside ml-4">
@@ -227,12 +238,23 @@ const PharmacyManager = ({ onBack }) => {
                           Received: {new Date(notification.createdAt).toLocaleString()}
                         </p>
                       </div>
-                      <button
-                        onClick={() => handleNotificationProcessed(notification.id)}
-                        className="ml-4 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
-                      >
-                        Mark Processed
-                      </button>
+                      <div className="ml-4 flex flex-col gap-2">
+                        {notification.isEmergency ? (
+                          <button
+                            onClick={() => handleNotificationProcessed(notification.id)}
+                            className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-medium"
+                          >
+                            🚚 Prepare for Delivery
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleNotificationProcessed(notification.id)}
+                            className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium"
+                          >
+                            ✅ Prepare for Pickup
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))

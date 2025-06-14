@@ -16,7 +16,7 @@ const AppointmentScheduler = ({ onBack, selectedPatient }) => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  const { getPatients, userRole, userDetails, createAppointment } = useAuth();
+  const { getPatients, userRole, userDetails, createAppointmentWithBilling } = useAuth();
   const dropdownRef = useRef(null);
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
@@ -114,10 +114,13 @@ const AppointmentScheduler = ({ onBack, selectedPatient }) => {
         createdBy: userDetails?.uid || '',
         createdByRole: userRole
       };
-      
-      await createAppointment(appointmentData);
+        const result = await createAppointmentWithBilling(appointmentData);
       
       setSuccess(true);
+      
+      if (result.bill) {
+        alert(`✅ Appointment scheduled successfully!\n💰 Bill created: ${result.bill.billId}\n💵 Amount: $${result.bill.totalAmount.toFixed(2)}`);
+      }
       
       setTimeout(() => {
         if (!selectedPatient) { 

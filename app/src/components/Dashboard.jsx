@@ -4,14 +4,16 @@ import { db } from '../config/firebase';
 import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
 import PatientRegister from './PatientRegister';
 import PatientDetails from './PatientDetails';
+import PatientAdmission from './PatientAdmission';
 import AppointmentScheduler from './AppointmentScheduler';
 import EmergencySlotManager from './EmergencySlotManager';
 import PrescriptionManager from './PrescriptionManager';
 import MedicalRecordsManager from './MedicalRecordsManager';
 import PharmacyManager from './PharmacyManager';
+import BillingManager from './BillingManager';
 
 const Dashboard = () => {
-  const { currentUser, userRole, userDetails, logout, getPatients } = useAuth();
+  const { currentUser, userRole, userDetails, logout, getPatientsForHospital } = useAuth();
   const [currentView, setCurrentView] = useState('dashboard');
   const [patients, setPatients] = useState([]);
   const [stats, setStats] = useState({
@@ -36,24 +38,29 @@ const Dashboard = () => {
       setSelectedPatient(event.detail);
       setCurrentView('prescription-manager');
     };
-    
-    const handleNavigateToMedicalRecords = (event) => {
+      const handleNavigateToMedicalRecords = (event) => {
       setSelectedPatient(event.detail);
       setCurrentView('medical-records-manager');
     };
     
+    const handleNavigateToBillingManager = (event) => {
+      setSelectedPatient(event.detail);
+      setCurrentView('billing-manager');
+    };
+    
     window.addEventListener('navigate-to-prescription-manager', handleNavigateToPrescriptionManager);
     window.addEventListener('navigate-to-medical-records', handleNavigateToMedicalRecords);
+    window.addEventListener('navigate-to-billing-manager', handleNavigateToBillingManager);
     
     return () => {
       window.removeEventListener('navigate-to-prescription-manager', handleNavigateToPrescriptionManager);
       window.removeEventListener('navigate-to-medical-records', handleNavigateToMedicalRecords);
+      window.removeEventListener('navigate-to-billing-manager', handleNavigateToBillingManager);
     };
   }, [userRole]);
-
   const loadPatients = async () => {
     try {
-      const patientsData = await getPatients();
+      const patientsData = await getPatientsForHospital();
       setPatients(patientsData);
       setStats(prev => ({
         ...prev,
@@ -62,7 +69,7 @@ const Dashboard = () => {
     } catch (error) {
       console.error('Failed to load patients:', error);
     }
-  };  const loadDashboardData = async () => {
+  };const loadDashboardData = async () => {
     try {
       setLoading(true);
       
@@ -205,6 +212,8 @@ const Dashboard = () => {
     switch (currentView) {
       case 'register-patient':
         return <PatientRegister onBack={() => setCurrentView('dashboard')} />;
+      case 'admit-patient':
+        return <PatientAdmission onBack={() => setCurrentView('dashboard')} selectedPatient={selectedPatient} />;
       case 'view-patients':
         return renderPatientsView();
       case 'appointments':
@@ -236,9 +245,13 @@ const Dashboard = () => {
       case 'medical-records':
         return <MedicalRecordsManager 
           onBack={() => setCurrentView('dashboard')} 
-        />;
-      case 'medical-records-manager':
+        />;      case 'medical-records-manager':
         return <MedicalRecordsManager 
+          onBack={() => setCurrentView('dashboard')} 
+          selectedPatient={selectedPatient}
+        />;
+      case 'billing-manager':
+        return <BillingManager 
           onBack={() => setCurrentView('dashboard')} 
           selectedPatient={selectedPatient}
         />;
@@ -860,15 +873,14 @@ const Dashboard = () => {
                 >
                   View Prescriptions
                 </button>
-              </div>
-              <div className="bg-white p-6 rounded-xl shadow-lg border transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
-                <h3 className="text-lg font-semibold text-gray-800 mb-3">Medicine Orders</h3>
-                <p className="text-gray-600 mb-4">Track your medicine delivery status</p>
+              </div>              <div className="bg-white p-6 rounded-xl shadow-lg border transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+                <h3 className="text-lg font-semibold text-gray-800 mb-3">💰 My Bills</h3>
+                <p className="text-gray-600 mb-4">View your bills and payment history</p>
                 <button 
-                  onClick={() => setCurrentView('orders')}
+                  onClick={() => setCurrentView('billing-manager')}
                   className="w-full bg-gradient-to-r from-orange-500 to-orange-600 text-white py-2 px-4 rounded-lg font-medium transition-all duration-300 hover:shadow-lg hover:shadow-orange-500/30"
                 >
-                  Track Orders
+                  View Bills
                 </button>
               </div>
             </div>
@@ -968,8 +980,7 @@ const Dashboard = () => {
               </div>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div className="bg-white p-6 rounded-xl shadow-lg border transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">              <div className="bg-white p-6 rounded-xl shadow-lg border transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
                 <h3 className="text-lg font-semibold text-gray-800 mb-3">Register Patient</h3>
                 <p className="text-gray-600 mb-4">Add new patients to the system</p>
                 <button 
@@ -977,6 +988,16 @@ const Dashboard = () => {
                   className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-2 px-4 rounded-lg font-medium transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/30"
                 >
                   Register Patient
+                </button>
+              </div>
+              <div className="bg-white p-6 rounded-xl shadow-lg border transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+                <h3 className="text-lg font-semibold text-gray-800 mb-3">Patient Admission</h3>
+                <p className="text-gray-600 mb-4">Admit patients and allocate beds</p>
+                <button 
+                  onClick={() => setCurrentView('admit-patient')}
+                  className="w-full bg-gradient-to-r from-red-500 to-red-600 text-white py-2 px-4 rounded-lg font-medium transition-all duration-300 hover:shadow-lg hover:shadow-red-500/30"
+                >
+                  🏥 Admit Patient
                 </button>
               </div>
               <div className="bg-white p-6 rounded-xl shadow-lg border transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
@@ -998,12 +1019,14 @@ const Dashboard = () => {
                 >
                   Manage Appointments
                 </button>
-              </div>
-              <div className="bg-white p-6 rounded-xl shadow-lg border transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
-                <h3 className="text-lg font-semibold text-gray-800 mb-3">Reports</h3>
-                <p className="text-gray-600 mb-4">Generate daily and monthly reports</p>
-                <button className="w-full bg-gradient-to-r from-orange-500 to-orange-600 text-white py-2 px-4 rounded-lg font-medium transition-all duration-300 hover:shadow-lg hover:shadow-orange-500/30">
-                  View Reports
+              </div>              <div className="bg-white p-6 rounded-xl shadow-lg border transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+                <h3 className="text-lg font-semibold text-gray-800 mb-3">💰 Billing Manager</h3>
+                <p className="text-gray-600 mb-4">Manage bills, payments, and financial records</p>
+                <button 
+                  onClick={() => setCurrentView('billing-manager')}
+                  className="w-full bg-gradient-to-r from-orange-500 to-orange-600 text-white py-2 px-4 rounded-lg font-medium transition-all duration-300 hover:shadow-lg hover:shadow-orange-500/30"
+                >
+                  Manage Billing
                 </button>
               </div>
             </div>

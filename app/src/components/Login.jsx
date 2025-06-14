@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 
-const Login = ({ onSwitchToRegister }) => {
+const Login = () => {
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -157,18 +157,15 @@ const Login = ({ onSwitchToRegister }) => {
         <button type="submit" disabled={loading} className="w-full p-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg font-semibold uppercase tracking-wide transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-blue-500/30 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none mb-6">
           {loading ? 'Signing In...' : 'Sign In'}
         </button>
-
         <div className="mt-8 pt-6 border-t border-gray-200">
-          <p className="text-center text-gray-700 font-medium mb-2"><strong>For Hospital Staff:</strong></p>
-          <p className="text-center text-gray-600 text-sm mb-4">If you're a new staff member, please contact your administrator to create your account.</p>
+          <div className="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500 mb-4">
+            <p className="text-blue-800 font-medium mb-1">🏥 <strong>For Hospital Staff:</strong></p>
+            <p className="text-blue-700 text-sm">If you're a new staff member, please contact your hospital administrator to create your account. Staff accounts are managed by hospital admins only.</p>
+          </div>
           
-          <button type="button" onClick={onSwitchToRegister} className="block mx-auto text-blue-500 hover:text-purple-600 font-medium underline transition-colors duration-300">
-            Register as Hospital Staff
-          </button>
-          
-          <div className="bg-gray-50 p-4 rounded-lg mt-4 border-l-4 border-blue-500">
-            <p className="text-gray-700 font-medium mb-1"><strong>For Patients:</strong></p>
-            <p className="text-gray-600 text-sm">Your account will be created by hospital reception staff. You will receive your login credentials after registration.</p>
+          <div className="bg-green-50 p-4 rounded-lg border-l-4 border-green-500">
+            <p className="text-green-800 font-medium mb-1">👥 <strong>For Patients:</strong></p>
+            <p className="text-green-700 text-sm">Your account will be created by hospital reception staff during registration. You will receive your login credentials after completing the registration process.</p>
           </div>
         </div>
       </form>

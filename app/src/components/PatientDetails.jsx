@@ -128,8 +128,7 @@ const PatientDetails = ({ patient, onClose, onEdit, onScheduleAppointment }) => 
               className="flex-1 bg-green-600 text-white py-3 px-6 rounded-lg hover:bg-green-700 transition duration-200 font-medium"
             >
               📝 Create Prescription
-            </button>
-            <button 
+            </button>            <button 
               onClick={() => {
                 onClose();
                 window.dispatchEvent(new CustomEvent('navigate-to-medical-records', { detail: patient }));
@@ -139,8 +138,17 @@ const PatientDetails = ({ patient, onClose, onEdit, onScheduleAppointment }) => 
               📋 Update Medical Records
             </button>
             <button 
-              onClick={onEdit}
+              onClick={() => {
+                onClose();
+                window.dispatchEvent(new CustomEvent('navigate-to-billing-manager', { detail: patient }));
+              }}
               className="flex-1 bg-orange-600 text-white py-3 px-6 rounded-lg hover:bg-orange-700 transition duration-200 font-medium"
+            >
+              💰 View Bills
+            </button>
+            <button 
+              onClick={onEdit}
+              className="flex-1 bg-gray-600 text-white py-3 px-6 rounded-lg hover:bg-gray-700 transition duration-200 font-medium"
             >
               ✏️ Edit Patient Info
             </button>
