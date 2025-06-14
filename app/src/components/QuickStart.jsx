@@ -14,38 +14,34 @@ const QuickStart = ({ onClose }) => {
               ×
             </button>
           </div>
-        </div>
-
-        <div className="p-6">
+        </div>        <div className="p-6">
           <div className="mb-8">
-            <h3 className="text-xl font-semibold text-blue-800 mb-4">🏥 Updated Hospital Management System</h3>
-            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-              <p className="text-blue-800 mb-2">
-                <strong>Major Updates:</strong> Streamlined patient management and staff registration!
+            <h3 className="text-xl font-semibold text-green-800 mb-4">� Production-Ready Hospital Management System</h3>
+            <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+              <p className="text-green-800 mb-2">
+                <strong>✅ System is now fully production-ready:</strong>
               </p>
-              <ul className="text-blue-700 text-sm space-y-1">
-                <li>• Patients are registered once with their basic information</li>
-                <li>• Emergency/planned admissions are handled separately with bed allocation</li>
-                <li>• Medicine delivery is automatically determined by admission status</li>
-                <li>• Staff registration removed from public access - only hospital admins can add staff</li>
-                <li>• One email = one patient, multiple visits/admissions possible</li>
+              <ul className="text-green-700 text-sm space-y-1">
+                <li>• No mock data or default credentials</li>
+                <li>• Secure registration workflows for all user types</li>
+                <li>• Real-time pharmacy operations with emergency prioritization</li>
+                <li>• Multi-hospital network support with data isolation</li>
+                <li>• Comprehensive role-based access control</li>
+                <li>• Production-grade security and authentication</li>
               </ul>
             </div>
           </div>
 
           <div className="mb-8">
-            <h3 className="text-xl font-semibold text-red-800 mb-4">🔒 Staff Registration Security Update</h3>
-            <div className="bg-red-50 p-4 rounded-lg border-l-4 border-red-500">
-              <h4 className="font-semibold text-red-800 mb-2">Important: Staff Registration Removed from Public Access</h4>
-              <p className="text-red-700 text-sm mb-2">
-                Hospital staff can no longer register themselves. All staff accounts must be created by hospital administrators.
-              </p>
-              <ul className="text-red-600 text-sm space-y-1">
-                <li>• Only hospital admins can register new staff members</li>
-                <li>• Staff registration available in Hospital Admin Dashboard</li>
-                <li>• Ensures proper authorization and hospital association</li>
-                <li>• Maintains security and prevents unauthorized access</li>
-              </ul>
+            <h3 className="text-xl font-semibold text-blue-800 mb-4">🔒 Secure Access Control</h3>
+            <div className="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">
+              <h4 className="font-semibold text-blue-800 mb-2">All user accounts created through secure processes:</h4>
+              <div className="text-blue-700 text-sm space-y-2">
+                <p><strong>🏥 Hospital Admins:</strong> Created during hospital registration process</p>
+                <p><strong>👨‍⚕️ Hospital Staff:</strong> Registered by hospital admins only</p>
+                <p><strong>👥 Patients:</strong> Registered by reception staff with secure credentials</p>
+                <p><strong>🌐 Super Admins:</strong> System administrators with global access</p>
+              </div>
             </div>
           </div>
 
