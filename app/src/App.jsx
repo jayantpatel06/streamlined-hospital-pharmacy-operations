@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import HomePage from './components/HomePage';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import FirebaseStatus from './components/FirebaseStatus';
@@ -23,12 +24,16 @@ function AuthenticatedApp() {
   const [showSuperAdmin, setShowSuperAdmin] = useState(false);
   const [showDeliveryPartnerRegister, setShowDeliveryPartnerRegister] = useState(false);
   const [showPatientRegister, setShowPatientRegister] = useState(false);
+  const [showLogin, setShowLogin] = useState(false);
   const [currentView, setCurrentView] = useState('default');
 
   if (showAdminSetup) {
     return (
       <div>
-        <AdminSetup onClose={() => setShowAdminSetup(false)} />
+        <AdminSetup onClose={() => {
+          setShowAdminSetup(false);
+          setShowLogin(false);
+        }} />
       </div>
     );
   }
@@ -36,7 +41,10 @@ function AuthenticatedApp() {
   if (showInstructions) {
     return (
       <div>
-        <SystemInstructions onClose={() => setShowInstructions(false)} />
+        <SystemInstructions onClose={() => {
+          setShowInstructions(false);
+          setShowLogin(false);
+        }} />
       </div>
     );
   }
@@ -44,9 +52,13 @@ function AuthenticatedApp() {
   if (showHospitalRegister) {
     return (
       <HospitalRegister 
-        onBack={() => setShowHospitalRegister(false)}
+        onBack={() => {
+          setShowHospitalRegister(false);
+          setShowLogin(false);
+        }}
         onSuccess={() => {
           setShowHospitalRegister(false);
+          setShowLogin(false);
         }}
       />
     );
@@ -55,9 +67,13 @@ function AuthenticatedApp() {
   if (showDeliveryPartnerRegister) {
     return (
       <DeliveryPartnerRegister 
-        onBack={() => setShowDeliveryPartnerRegister(false)}
+        onBack={() => {
+          setShowDeliveryPartnerRegister(false);
+          setShowLogin(false);
+        }}
         onSuccess={() => {
           setShowDeliveryPartnerRegister(false);
+          setShowLogin(false);
           alert('🎉 Registration successful! Please login with your credentials.');
         }}
       />
@@ -67,9 +83,13 @@ function AuthenticatedApp() {
   if (showPatientRegister) {
     return (
       <PublicPatientRegister 
-        onBack={() => setShowPatientRegister(false)}
+        onBack={() => {
+          setShowPatientRegister(false);
+          setShowLogin(false);
+        }}
         onSuccess={() => {
           setShowPatientRegister(false);
+          setShowLogin(false);
           alert('🎉 Registration successful! Please login with your credentials.');
         }}
       />
@@ -81,6 +101,7 @@ function AuthenticatedApp() {
       <SuperAdminDashboard 
         onLogout={() => {
           setShowSuperAdmin(false);
+          setShowLogin(false);
           logout();
         }}
       />
@@ -118,49 +139,66 @@ function AuthenticatedApp() {
     }
   }
 
-  return (
-    <div>
-      <div className="absolute top-4 right-4 z-10 flex gap-2 flex-wrap">
-        <button
-          onClick={() => setShowInstructions(true)}
-          className="bg-indigo-600 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-indigo-700 transition duration-200 text-sm"
-        >
-          📖 User Guide
-        </button>
-        <button
-          onClick={() => setShowHospitalRegister(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-blue-700 transition duration-200 text-sm"
-        >
-          🏥 Register Hospital
-        </button>
-        <button
-          onClick={() => setShowPatientRegister(true)}
-          className="bg-pink-600 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-pink-700 transition duration-200 text-sm"
-        >
-          👤 Register as Patient
-        </button>
-        <button
-          onClick={() => setShowDeliveryPartnerRegister(true)}
-          className="bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-green-700 transition duration-200 text-sm"
-        >
-          🚚 Join as Delivery Partner
-        </button>
-        <button
-          onClick={() => setShowSuperAdmin(true)}
-          className="bg-purple-600 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-purple-700 transition duration-200 text-sm"
-        >
-          🌐 Super Admin
-        </button>
-        <button
-          onClick={() => setShowAdminSetup(true)}
-          className="bg-orange-600 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-orange-700 transition duration-200 text-sm"
-        >
-          🚀 Setup System
-        </button>
+  if (showLogin) {
+    return (
+      <div>
+        <div className="absolute top-4 right-4 z-10 flex gap-2 flex-wrap">
+          <button
+            onClick={() => setShowLogin(false)}
+            className="bg-gray-600 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-gray-700 transition duration-200 text-sm"
+          >
+            ← Back to Home
+          </button>
+          <button
+            onClick={() => setShowInstructions(true)}
+            className="bg-indigo-600 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-indigo-700 transition duration-200 text-sm"
+          >
+            📖 User Guide
+          </button>
+          <button
+            onClick={() => setShowHospitalRegister(true)}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-blue-700 transition duration-200 text-sm"
+          >
+            🏥 Register Hospital
+          </button>
+          <button
+            onClick={() => setShowPatientRegister(true)}
+            className="bg-pink-600 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-pink-700 transition duration-200 text-sm"
+          >
+            👤 Register as Patient
+          </button>
+          <button
+            onClick={() => setShowDeliveryPartnerRegister(true)}
+            className="bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-green-700 transition duration-200 text-sm"
+          >
+            🚚 Join as Delivery Partner
+          </button>
+          <button
+            onClick={() => setShowSuperAdmin(true)}
+            className="bg-purple-600 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-purple-700 transition duration-200 text-sm"
+          >
+            🌐 Super Admin
+          </button>
+          <button
+            onClick={() => setShowAdminSetup(true)}
+            className="bg-orange-600 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-orange-700 transition duration-200 text-sm"
+          >
+            🚀 Setup System
+          </button>
+        </div>
+        
+        <Login />
       </div>
-      
-      <Login />
-    </div>
+    );
+  }
+
+  return (
+    <HomePage
+      onLogin={() => setShowLogin(true)}
+      onRegisterHospital={() => setShowHospitalRegister(true)}
+      onRegisterPatient={() => setShowPatientRegister(true)}
+      onRegisterDeliveryPartner={() => setShowDeliveryPartnerRegister(true)}
+    />
   );
 }
 
