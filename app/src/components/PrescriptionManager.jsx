@@ -310,15 +310,16 @@ const PrescriptionManager = ({ onBack, selectedPatient }) => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <div className="flex justify-between items-center mb-4">
+          <div className="bg-white rounded-xl shadow-lg p-6">            <div className="flex justify-between items-center mb-4">
               <h3 className="text-xl font-semibold text-gray-800">All Prescriptions</h3>
-              <button
-                onClick={() => setShowCreateForm(!showCreateForm)}
-                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition duration-200"
-              >
-                + Create Prescription
-              </button>
+              {(userRole === 'doctor' || userRole === 'receptionist') && (
+                <button
+                  onClick={() => setShowCreateForm(!showCreateForm)}
+                  className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition duration-200"
+                >
+                  + Create Prescription
+                </button>
+              )}
             </div>
 
             <div className="mb-4">

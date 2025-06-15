@@ -216,11 +216,15 @@ export const AuthProvider = ({ children }) => {
       throw error;
     }
   };
-
   const getPatients = async () => {
     try {
+      // Filter patients by hospital ID to maintain data isolation
       const patientsSnapshot = await getDocs(
-        query(collection(db, 'users'), where('role', '==', 'patient'))
+        query(
+          collection(db, 'users'), 
+          where('role', '==', 'patient'),
+          where('hospitalId', '==', userDetails?.hospitalId || '')
+        )
       );
       return patientsSnapshot.docs.map(doc => doc.data());
     } catch (error) {

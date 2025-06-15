@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '../config/firebase';
 
 const HospitalAdminDashboard = ({ onSwitchView }) => {
   const [currentView, setCurrentView] = useState('dashboard');
@@ -133,7 +135,7 @@ const HospitalAdminDashboard = ({ onSwitchView }) => {
         </div>
 
         <div className="bg-white p-6 rounded-xl shadow-lg border transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
-          <h3 className="text-lg font-semibold text-gray-800 mb-3">📊 Reports & Analytics</h3>
+          <h3 className="text-lg font-semibold mb-2">📊 Reports & Analytics</h3>
           <p className="text-gray-600 mb-4">View hospital performance reports</p>
           <button 
             onClick={() => setCurrentView('reports')}
@@ -274,6 +276,8 @@ const HospitalAdminDashboard = ({ onSwitchView }) => {
 
 const StaffManagement = ({ staff, hospitalData, onBack, onStaffAdded }) => {
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [editingStaff, setEditingStaff] = useState(null);
   const [newStaff, setNewStaff] = useState({
     firstName: '',
     lastName: '',
@@ -329,6 +333,88 @@ const StaffManagement = ({ staff, hospitalData, onBack, onStaffAdded }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleEditStaff = (staffMember) => {
+    setEditingStaff(staffMember);
+    setNewStaff({
+      firstName: staffMember.firstName,
+      lastName: staffMember.lastName,
+      email: staffMember.email,
+      password: '', // Don't prefill password for security
+      phoneNumber: staffMember.phoneNumber || '',
+      role: staffMember.role,
+      department: staffMember.department || '',
+      specialization: staffMember.specialization || '',
+      licenseNumber: staffMember.licenseNumber || '',
+      position: staffMember.position || ''
+    });
+    setShowEditForm(true);
+    setShowAddForm(false);
+  };
+
+  const handleUpdateStaff = async (e) => {
+    e.preventDefault();
+    
+    try {
+      setLoading(true);
+      setError('');
+      
+      // Update staff member in Firebase
+      const staffRef = doc(db, 'users', editingStaff.uid);
+      await updateDoc(staffRef, {
+        firstName: newStaff.firstName,
+        lastName: newStaff.lastName,
+        phoneNumber: newStaff.phoneNumber,
+        role: newStaff.role,
+        department: newStaff.department,
+        specialization: newStaff.specialization,
+        licenseNumber: newStaff.licenseNumber,
+        position: newStaff.position,
+        updatedAt: new Date().toISOString()
+      });
+      
+      setShowEditForm(false);
+      setEditingStaff(null);
+      setNewStaff({
+        firstName: '',
+        lastName: '',
+        email: '',
+        password: '',
+        phoneNumber: '',
+        role: 'doctor',
+        department: '',
+        specialization: '',
+        licenseNumber: '',
+        position: ''
+      });
+      
+      onStaffAdded(); // Reload staff list
+      
+      alert('✅ Staff member updated successfully!');
+    } catch (error) {
+      console.error('Error updating staff:', error);
+      setError('Failed to update staff member. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const cancelEdit = () => {
+    setShowEditForm(false);
+    setEditingStaff(null);
+    setNewStaff({
+      firstName: '',
+      lastName: '',
+      email: '',
+      password: '',
+      phoneNumber: '',
+      role: 'doctor',
+      department: '',
+      specialization: '',
+      licenseNumber: '',
+      position: ''
+    });
   };
 
   return (
@@ -479,6 +565,131 @@ const StaffManagement = ({ staff, hospitalData, onBack, onStaffAdded }) => {
         </div>
       )}
 
+      {/* Edit Staff Form Modal */}
+      {showEditForm && editingStaff && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-semibold mb-4">Edit Staff Member</h3>
+            
+            {error && (
+              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                {error}
+              </div>
+            )}
+            
+            <form onSubmit={handleUpdateStaff}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">First Name *</label>
+                  <input
+                    type="text"
+                    value={newStaff.firstName}
+                    onChange={(e) => setNewStaff(prev => ({ ...prev, firstName: e.target.value }))}
+                    required
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Last Name *</label>
+                  <input
+                    type="text"
+                    value={newStaff.lastName}
+                    onChange={(e) => setNewStaff(prev => ({ ...prev, lastName: e.target.value }))}
+                    required
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                  <input
+                    type="email"
+                    value={newStaff.email}
+                    onChange={(e) => setNewStaff(prev => ({ ...prev, email: e.target.value }))}
+                    required
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Password *</label>
+                  <input
+                    type="password"
+                    value={newStaff.password}
+                    onChange={(e) => setNewStaff(prev => ({ ...prev, password: e.target.value }))}
+                    required
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number *</label>
+                  <input
+                    type="tel"
+                    value={newStaff.phoneNumber}
+                    onChange={(e) => setNewStaff(prev => ({ ...prev, phoneNumber: e.target.value }))}
+                    required
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Role *</label>
+                  <select
+                    value={newStaff.role}
+                    onChange={(e) => setNewStaff(prev => ({ ...prev, role: e.target.value }))}
+                    required
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    {staffRoles.map(role => (
+                      <option key={role} value={role}>
+                        {role.charAt(0).toUpperCase() + role.slice(1).replace('_', ' ')}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Department *</label>
+                  <select
+                    value={newStaff.department}
+                    onChange={(e) => setNewStaff(prev => ({ ...prev, department: e.target.value }))}
+                    required
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Select Department</option>
+                    {hospitalData?.departments?.map(dept => (
+                      <option key={dept} value={dept}>{dept}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Specialization</label>
+                  <input
+                    type="text"
+                    value={newStaff.specialization}
+                    onChange={(e) => setNewStaff(prev => ({ ...prev, specialization: e.target.value }))}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={cancelEdit}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-400"
+                >
+                  {loading ? 'Updating...' : 'Update Staff Member'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Staff List */}
       <div className="bg-white rounded-xl shadow-lg overflow-hidden">
         <div className="overflow-x-auto">
@@ -511,9 +722,14 @@ const StaffManagement = ({ staff, hospitalData, onBack, onStaffAdded }) => {
                     </span>
                   </td>
                   <td className="px-6 py-4">
-                    <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                      Edit
-                    </button>
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={() => handleEditStaff(member)}
+                        className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                      >
+                        Edit
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

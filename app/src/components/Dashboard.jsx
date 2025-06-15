@@ -4,6 +4,7 @@ import { db } from '../config/firebase';
 import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
 import PatientRegister from './PatientRegister';
 import PatientDetails from './PatientDetails';
+import PatientEdit from './PatientEdit';
 import PatientAdmission from './PatientAdmission';
 import AppointmentScheduler from './AppointmentScheduler';
 import EmergencySlotManager from './EmergencySlotManager';
@@ -24,9 +25,9 @@ const Dashboard = () => {
   });
   const [appointments, setAppointments] = useState([]);
   const [prescriptions, setPrescriptions] = useState([]);
-  const [orders, setOrders] = useState([]);
-  const [selectedPatient, setSelectedPatient] = useState(null);
+  const [orders, setOrders] = useState([]);  const [selectedPatient, setSelectedPatient] = useState(null);
   const [showPatientDetails, setShowPatientDetails] = useState(false);
+  const [showPatientEdit, setShowPatientEdit] = useState(false);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     if (userRole === 'receptionist' || userRole === 'doctor') {
@@ -98,7 +99,6 @@ const Dashboard = () => {
       setLoading(false);
     }
   };
-
   const loadAppointments = async () => {
     try {
       let appointmentsQuery;
@@ -108,20 +108,23 @@ const Dashboard = () => {
           collection(db, 'appointments'),
           where('patientId', '==', userDetails?.patientId || ''),
           orderBy('date', 'desc'),
-          limit(10)
+          limit(50) // Increased limit for better visibility
         );
       } else if (userRole === 'doctor') {
         appointmentsQuery = query(
           collection(db, 'appointments'),
           where('doctorId', '==', userDetails?.staffId || ''),
+          where('hospitalId', '==', userDetails?.hospitalId || ''),
           orderBy('date', 'desc'),
-          limit(10)
+          limit(50)
         );
       } else {
+        // For receptionist, nurse, pharmacy staff - filter by hospital
         appointmentsQuery = query(
           collection(db, 'appointments'),
+          where('hospitalId', '==', userDetails?.hospitalId || ''),
           orderBy('date', 'desc'),
-          limit(10)
+          limit(50)
         );
       }
       
@@ -208,7 +211,19 @@ const Dashboard = () => {
   const handleClosePatientDetails = () => {
     setSelectedPatient(null);
     setShowPatientDetails(false);
-  };  const renderCurrentView = () => {
+  };
+
+  const handleEditPatient = () => {
+    setShowPatientDetails(false);
+    setShowPatientEdit(true);
+  };
+
+  const handleClosePatientEdit = () => {
+    setShowPatientEdit(false);
+    setSelectedPatient(null);
+  };
+
+  const renderCurrentView = () => {
     switch (currentView) {
       case 'register-patient':
         return <PatientRegister onBack={() => setCurrentView('dashboard')} />;
@@ -1099,16 +1114,23 @@ const Dashboard = () => {
     }
   };
   return (
-    <div className="min-h-screen bg-gray-50">
-      {showPatientDetails && selectedPatient && (
+    <div className="min-h-screen bg-gray-50">      {showPatientDetails && selectedPatient && (
         <PatientDetails
           patient={selectedPatient}
           onClose={handleClosePatientDetails}
-          onEdit={() => {
-            console.log('Edit patient:', selectedPatient);
-          }}
+          onEdit={handleEditPatient}
           onScheduleAppointment={(patient) => {
             setCurrentView('schedule-appointment');
+          }}
+        />
+      )}
+
+      {showPatientEdit && selectedPatient && (
+        <PatientEdit
+          patient={selectedPatient}
+          onClose={handleClosePatientEdit}
+          onSave={() => {
+            loadPatients(); // Reload patients after edit
           }}
         />
       )}

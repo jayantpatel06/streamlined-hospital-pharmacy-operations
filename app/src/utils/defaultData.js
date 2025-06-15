@@ -26,12 +26,11 @@ export const systemRoles = {
     description: "Healthcare professional supporting patient care",
     permissions: ["patient_care", "medical_records_view", "patient_support", "medication_assistance"],
     access: ["hospital_patients", "medical_records", "patient_details", "care_coordination"]
-  },
-  receptionist: {
+  },  receptionist: {
     name: "Receptionist",
-    description: "Administrative staff handling patient registration and scheduling",
-    permissions: ["patient_registration", "appointments", "billing", "patient_admission"],
-    access: ["patient_register", "patient_admission", "appointment_scheduler", "billing_manager"]
+    description: "Administrative staff handling patient registration, scheduling and prescriptions",
+    permissions: ["patient_registration", "appointments", "billing", "patient_admission", "prescription_management"],
+    access: ["patient_register", "patient_admission", "appointment_scheduler", "billing_manager", "prescription_manager"]
   },
   pharmacy: {
     name: "Pharmacy Staff",
@@ -265,11 +264,11 @@ export const loginInstructions = {
         'Assist with patient care coordination',
         'Monitor patient status and updates',
         'Support medication administration'
-      ],
-      receptionist: [
+      ],      receptionist: [
         'Register new patients in the system',
         'Admit patients and allocate beds',
         'Schedule patient appointments',
+        'Create and manage patient prescriptions',
         'Manage billing and payment processing'
       ],
       pharmacy: [
