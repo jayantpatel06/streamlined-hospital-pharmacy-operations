@@ -26,11 +26,10 @@ This system streamlines **hospital pharmacy operations** with automation and rea
   - The system **tracks nurse contributions**, allowing for incentives or recognition.
 
 ## Technologies Used
-- **Backend**: Node.js, Express.js
 - **Frontend**: React.js, Redux
-- **Database**: MongoDB
-- **Authentication**: JWT (JSON Web Tokens)
-- **Deployment**: Docker, Kubernetes
+- **Database**: Firebase Storage
+- **Authentication**: Firebase Auth
+- **Deployment**: Netlify CI/CD
 ## Installation
 1. Clone the repository:
    ```bash
