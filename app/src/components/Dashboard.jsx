@@ -28,9 +28,8 @@ const Dashboard = () => {
   const [orders, setOrders] = useState([]);  const [selectedPatient, setSelectedPatient] = useState(null);
   const [showPatientDetails, setShowPatientDetails] = useState(false);
   const [showPatientEdit, setShowPatientEdit] = useState(false);
-  const [loading, setLoading] = useState(true);
-  useEffect(() => {
-    if (userRole === 'receptionist' || userRole === 'doctor') {
+  const [loading, setLoading] = useState(true);  useEffect(() => {
+    if (userRole === 'receptionist' || userRole === 'doctor' || userRole === 'nurse') {
       loadPatients();
     }
     loadDashboardData();
@@ -1096,6 +1095,55 @@ const Dashboard = () => {
                 <p className="text-gray-600 mb-4">Generate pharmacy reports</p>
                 <button className="w-full bg-gradient-to-r from-orange-500 to-orange-600 text-white py-2 px-4 rounded-lg font-medium transition-all duration-300 hover:shadow-lg hover:shadow-orange-500/30">
                   View Reports
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'nurse':
+        return (
+          <div className="max-w-7xl mx-auto px-6 py-8">
+            <div className="mb-8">
+              <h2 className="text-3xl font-bold text-gray-800 mb-6">Nurse Dashboard</h2>
+              <div className="bg-white p-6 rounded-xl shadow-lg border-l-4 border-cyan-500">
+                <h3 className="text-xl font-semibold text-gray-800 mb-4">Nurse {userDetails?.firstName} {userDetails?.lastName}</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-gray-600">
+                  <p><strong className="text-gray-800">Staff ID:</strong> {userDetails?.staffId}</p>
+                  <p><strong className="text-gray-800">Department:</strong> {userDetails?.department}</p>
+                  <p><strong className="text-gray-800">Phone:</strong> {userDetails?.phoneNumber}</p>
+                </div>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="bg-white p-6 rounded-xl shadow-lg border transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+                <h3 className="text-lg font-semibold text-gray-800 mb-3">Patient Care</h3>
+                <p className="text-gray-600 mb-4">View patient list and details</p>
+                <button 
+                  onClick={() => setCurrentView('view-patients')}
+                  className="w-full bg-gradient-to-r from-cyan-500 to-cyan-600 text-white py-2 px-4 rounded-lg font-medium transition-all duration-300 hover:shadow-lg hover:shadow-cyan-500/30"
+                >
+                  View Patients
+                </button>
+              </div>
+              <div className="bg-white p-6 rounded-xl shadow-lg border transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+                <h3 className="text-lg font-semibold text-gray-800 mb-3">Appointments</h3>
+                <p className="text-gray-600 mb-4">View today's appointments</p>
+                <button 
+                  onClick={() => setCurrentView('appointments')}
+                  className="w-full bg-gradient-to-r from-teal-500 to-teal-600 text-white py-2 px-4 rounded-lg font-medium transition-all duration-300 hover:shadow-lg hover:shadow-teal-500/30"
+                >
+                  View Appointments
+                </button>
+              </div>
+              <div className="bg-white p-6 rounded-xl shadow-lg border transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+                <h3 className="text-lg font-semibold text-gray-800 mb-3">Medical Records</h3>
+                <p className="text-gray-600 mb-4">Access patient medical records</p>
+                <button 
+                  onClick={() => setCurrentView('medical-records-manager')}
+                  className="w-full bg-gradient-to-r from-sky-500 to-sky-600 text-white py-2 px-4 rounded-lg font-medium transition-all duration-300 hover:shadow-lg hover:shadow-sky-500/30"
+                >
+                  Access Records
                 </button>
               </div>
             </div>
