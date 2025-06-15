@@ -37,7 +37,15 @@ This project aims to enhance the efficiency and accuracy of hospital pharmacy op
     ```
 ## Usage
 - Access the application via `http://localhost:3000`.
-- Use the provided admin credentials to log in and manage pharmacy operations.
+- Use the provided admin credentials to log in and manage pharmacy operations.  <br>
+
+i. To login as a hospitalA: (adminStaff) <br>
+   Username: hospadmin@hospitala.com <br>
+   Password: hospadmin@hospitala.com <br>
+ii. To login as a hospitalC: (adminStaff) <br>
+   Username: hospadmin@hospitalc.com <br>
+   Password: hospadmin@hospitalc.com <br>
+  
 ## Contributing
 We welcome contributions to this project! Please follow these steps:
 1. Fork the repository.
