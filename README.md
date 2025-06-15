@@ -7,11 +7,10 @@ This project aims to enhance the efficiency and accuracy of hospital pharmacy op
 - **Medication Dispensing**: Streamlined dispensing process with barcode scanning for accuracy and reduced errors.
 - **Reporting and Analytics**: Detailed reports on medication usage, inventory turnover, and operational efficiency.
 ## Technologies Used
-- **Backend**: Node.js, Express.js
 - **Frontend**: React.js, Redux
-- **Database**: MongoDB
-- **Authentication**: JWT (JSON Web Tokens)
-- **Deployment**: Docker, Kubernetes
+- **Database**: Firebase storage
+- **Authentication**: Firebase auth
+- **Deployment**: netlify
 ## Installation
 1. Clone the repository:
    ```bash
@@ -25,18 +24,12 @@ This project aims to enhance the efficiency and accuracy of hospital pharmacy op
    ```bash
     npm install
     ```
-4. Set up environment variables in a `.env` file:
-    ```plaintext
-    PORT=3000
-    MONGODB_URI=mongodb://localhost:27017/pharmacy
-    JWT_SECRET=your_jwt_secret
-    ```
-5. Start the application:
+4. Start the application:
     ```bash
-    npm start
+    npm run dev
     ```
 ## Usage
-- Access the application via `http://localhost:3000`.
+- Access the application via `http://localhost:5173`.
 - Use the provided admin credentials to log in and manage pharmacy operations.  <br>
 
 i. To login as a hospitalA: (adminStaff) <br>
