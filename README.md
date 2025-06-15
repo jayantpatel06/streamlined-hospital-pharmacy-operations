@@ -72,7 +72,7 @@ This project leverages **modern web technologies** to provide a secure and scala
 - Access the application via `http://localhost:3000`.
 - Use the provided admin credentials to log in and manage pharmacy operations.  <br>
 
-The following are the credentials of the registered hospitals:
+The following are the credentials of the registered hospitals:<br>
 i. To login as a hospitalA: (adminStaff) <br>
    Username: hospadmin@hospitala.com <br>
    Password: hospadmin@hospitala.com <br>
