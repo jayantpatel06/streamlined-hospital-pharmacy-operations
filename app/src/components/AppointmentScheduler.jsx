@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 
-const AppointmentScheduler = ({ onBack, selectedPatient }) => {
-  const [selectedPatientData, setSelectedPatientData] = useState(selectedPatient || null);
+const AppointmentScheduler = ({ onBack, selectedPatient }) => {  const [selectedPatientData, setSelectedPatientData] = useState(selectedPatient || null);
   const [patientSearch, setPatientSearch] = useState(selectedPatient ? `${selectedPatient.firstName} ${selectedPatient.lastName}` : '');
   const [showPatientDropdown, setShowPatientDropdown] = useState(false);
   const [filteredPatients, setFilteredPatients] = useState([]);
   const [allPatients, setAllPatients] = useState([]);
+  const [availableDoctors, setAvailableDoctors] = useState([]);
   const [doctorName, setDoctorName] = useState('');
   const [department, setDepartment] = useState('');
   const [date, setDate] = useState('');
@@ -16,7 +16,7 @@ const AppointmentScheduler = ({ onBack, selectedPatient }) => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  const { getPatients, userRole, userDetails, createAppointmentWithBilling } = useAuth();
+  const { getPatients, userRole, userDetails, createAppointmentWithBilling, getStaffForHospital } = useAuth();
   const dropdownRef = useRef(null);
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
@@ -27,6 +27,9 @@ const AppointmentScheduler = ({ onBack, selectedPatient }) => {
       const doctorFullName = `${userDetails.firstName} ${userDetails.lastName}`;
       const specialization = userDetails.specialization || userDetails.department || '';
       setDoctorName(specialization ? `${doctorFullName} - ${specialization}` : doctorFullName);
+    } else {
+      // Load doctors for receptionist and other staff
+      loadDoctors();
     }
   }, [userRole, userDetails]);
 
@@ -51,6 +54,31 @@ const AppointmentScheduler = ({ onBack, selectedPatient }) => {
       console.error('Error loading patients:', error);
     } finally {
       setLoading(false);
+    }
+  };
+  const loadDoctors = async () => {
+    try {
+      console.log("Loading doctors, hospital ID:", userDetails?.hospitalId);
+      if (userDetails?.hospitalId) {
+        const staff = await getStaffForHospital(userDetails.hospitalId);
+        console.log("Retrieved staff:", staff);
+        
+        // Filter for doctors only
+        const doctors = staff.filter(member => member.role === 'doctor');
+        console.log("Filtered doctors:", doctors);
+        
+        setAvailableDoctors(doctors);
+        
+        // If no doctors found, show a message
+        if (doctors.length === 0) {
+          console.warn("No doctors found for this hospital. Please register doctors first.");
+        }
+      } else {
+        console.warn("No hospital ID available for doctor lookup");
+      }
+    } catch (error) {
+      console.error('Error loading doctors:', error);
+      setAvailableDoctors([]);
     }
   };
 
@@ -91,19 +119,34 @@ const AppointmentScheduler = ({ onBack, selectedPatient }) => {
     try {
       setLoading(true);
       
+      // Find the selected doctor in the available doctors list
       let doctorId = '';
       let doctorFullName = doctorName;
       let departmentName = department;
-      
+        // Process doctor information
       if (doctorName.includes('-')) {
         const parts = doctorName.split('-');
-        doctorFullName = parts[0].trim();
-        departmentName = parts[1].trim();
+        doctorFullName = parts[0].trim();        if (parts.length > 1) {
+          departmentName = parts[1].trim();
+        }
       }
       
-      const appointmentData = {
+      // Find the selected doctor in availableDoctors to get their ID
+      const selectedDoctor = availableDoctors.find(doctor => 
+        doctorName.includes(`${doctor.firstName} ${doctor.lastName}`)
+      );
+      
+      if (selectedDoctor) {
+        doctorId = selectedDoctor.staffId || selectedDoctor.id;
+        // If department not set from the selection, use the doctor's department
+        if (!departmentName) {
+          departmentName = selectedDoctor.department || selectedDoctor.specialization;
+        }
+      }
+        const appointmentData = {
         patientId: selectedPatientData.patientId,
         patientName: `${selectedPatientData.firstName} ${selectedPatientData.lastName}`,
+        doctorId: doctorId, // Add doctor ID for reference
         doctorName: doctorFullName,
         department: departmentName,
         date: date,
@@ -112,7 +155,8 @@ const AppointmentScheduler = ({ onBack, selectedPatient }) => {
         notes: notes,
         status: 'Scheduled',
         createdBy: userDetails?.uid || '',
-        createdByRole: userRole
+        createdByRole: userRole,
+        hospitalId: userDetails?.hospitalId
       };
         const result = await createAppointmentWithBilling(appointmentData);
       
@@ -145,15 +189,6 @@ const AppointmentScheduler = ({ onBack, selectedPatient }) => {
       setLoading(false);
     }
   };
-
-  const doctorsList = [
-    'Dr. John Smith - Cardiology',
-    'Dr. Sarah Johnson - Neurology', 
-    'Dr. Michael Wilson - Pediatrics',
-    'Dr. Emily Brown - Orthopedics',
-    'Dr. Robert Davis - Emergency Medicine'
-  ];
-
   const appointmentTypes = [
     'Regular Checkup',
     'Follow-up Visit',
@@ -267,12 +302,20 @@ const AppointmentScheduler = ({ onBack, selectedPatient }) => {
                 value={doctorName}
                 onChange={(e) => setDoctorName(e.target.value)}
                 required
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"              >
                 <option value="">Select a doctor</option>
-                {doctorsList.map((doctor, index) => (
-                  <option key={index} value={doctor}>{doctor}</option>
-                ))}
+                {availableDoctors.length > 0 ? (
+                  availableDoctors.map((doctor) => {
+                    const doctorDisplay = `Dr. ${doctor.firstName} ${doctor.lastName}${doctor.department || doctor.specialization ? ` - ${doctor.department || doctor.specialization}` : ''}`;
+                    return (
+                      <option key={doctor.staffId || doctor.id} value={doctorDisplay}>
+                        {doctorDisplay}
+                      </option>
+                    );
+                  })
+                ) : (
+                  <option value="" disabled>No doctors registered at this hospital</option>
+                )}
               </select>
             </div>
           )}

@@ -8,6 +8,10 @@ import SystemInstructions from './components/SystemInstructions';
 import HospitalRegister from './components/HospitalRegister';
 import SuperAdminDashboard from './components/SuperAdminDashboard';
 import HospitalAdminDashboard from './components/HospitalAdminDashboard';
+import DeliveryPartnerRegister from './components/DeliveryPartnerRegister';
+import DeliveryPartnerDashboard from './components/DeliveryPartnerDashboard';
+import PatientPortal from './components/PatientPortal';
+import PublicPatientRegister from './components/PublicPatientRegister';
 import './App.css';
 
 function AuthenticatedApp() {
@@ -17,6 +21,8 @@ function AuthenticatedApp() {
   const [showInstructions, setShowInstructions] = useState(false);
   const [showHospitalRegister, setShowHospitalRegister] = useState(false);
   const [showSuperAdmin, setShowSuperAdmin] = useState(false);
+  const [showDeliveryPartnerRegister, setShowDeliveryPartnerRegister] = useState(false);
+  const [showPatientRegister, setShowPatientRegister] = useState(false);
   const [currentView, setCurrentView] = useState('default');
 
   if (showAdminSetup) {
@@ -46,6 +52,30 @@ function AuthenticatedApp() {
     );
   }
 
+  if (showDeliveryPartnerRegister) {
+    return (
+      <DeliveryPartnerRegister 
+        onBack={() => setShowDeliveryPartnerRegister(false)}
+        onSuccess={() => {
+          setShowDeliveryPartnerRegister(false);
+          alert('🎉 Registration successful! Please login with your credentials.');
+        }}
+      />
+    );
+  }
+
+  if (showPatientRegister) {
+    return (
+      <PublicPatientRegister 
+        onBack={() => setShowPatientRegister(false)}
+        onSuccess={() => {
+          setShowPatientRegister(false);
+          alert('🎉 Registration successful! Please login with your credentials.');
+        }}
+      />
+    );
+  }
+
   if (showSuperAdmin) {
     return (
       <SuperAdminDashboard 
@@ -59,7 +89,13 @@ function AuthenticatedApp() {
 
   if (currentUser) {
     // Route based on user role
-    if (userRole === 'hospital_admin') {
+    if (userRole === 'patient') {
+      return (
+        <PatientPortal 
+          onBack={logout}
+        />
+      );
+    } else if (userRole === 'hospital_admin') {
       return (
         <HospitalAdminDashboard 
           onSwitchView={(view) => {
@@ -67,6 +103,12 @@ function AuthenticatedApp() {
               setCurrentView('hospital-operations');
             }
           }}
+        />
+      );
+    } else if (userRole === 'delivery_partner') {
+      return (
+        <DeliveryPartnerDashboard 
+          onLogout={logout}
         />
       );
     } else if (currentView === 'hospital-operations') {
@@ -92,6 +134,18 @@ function AuthenticatedApp() {
           🏥 Register Hospital
         </button>
         <button
+          onClick={() => setShowPatientRegister(true)}
+          className="bg-pink-600 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-pink-700 transition duration-200 text-sm"
+        >
+          👤 Register as Patient
+        </button>
+        <button
+          onClick={() => setShowDeliveryPartnerRegister(true)}
+          className="bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-green-700 transition duration-200 text-sm"
+        >
+          🚚 Join as Delivery Partner
+        </button>
+        <button
           onClick={() => setShowSuperAdmin(true)}
           className="bg-purple-600 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-purple-700 transition duration-200 text-sm"
         >
@@ -99,7 +153,7 @@ function AuthenticatedApp() {
         </button>
         <button
           onClick={() => setShowAdminSetup(true)}
-          className="bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-green-700 transition duration-200 text-sm"
+          className="bg-orange-600 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-orange-700 transition duration-200 text-sm"
         >
           🚀 Setup System
         </button>

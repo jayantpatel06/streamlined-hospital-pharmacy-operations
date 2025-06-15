@@ -12,6 +12,7 @@ import PrescriptionManager from './PrescriptionManager';
 import MedicalRecordsManager from './MedicalRecordsManager';
 import PharmacyManager from './PharmacyManager';
 import BillingManager from './BillingManager';
+import NurseNotificationHandler from './NurseNotificationHandler';
 
 const Dashboard = () => {
   const { currentUser, userRole, userDetails, logout, getPatientsForHospital } = useAuth();
@@ -1213,9 +1214,11 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
-      </header>
-      
+      </header>      
       {renderCurrentView()}
+      
+      {/* Nurse Notification Handler - Only shows for nurses */}
+      <NurseNotificationHandler userDetails={userDetails} />
     </div>
   );
 };

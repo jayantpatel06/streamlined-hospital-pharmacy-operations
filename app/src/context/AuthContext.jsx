@@ -848,13 +848,12 @@ export const AuthProvider = ({ children }) => {
       return staffSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     } catch (error) {
       throw error;
-    }
-  };
+    }  };
 
   // Enhanced patient registration to include hospital context
   const registerPatientForHospital = async (patientData, hospitalId = null) => {
     try {
-      const targetHospitalId = hospitalId || userDetails?.hospitalId;
+      const targetHospitalId = hospitalId || patientData.hospitalId || userDetails?.hospitalId;
       if (!targetHospitalId) {
         throw new Error('Hospital context required for patient registration');
       }
@@ -865,9 +864,9 @@ export const AuthProvider = ({ children }) => {
       }
 
       const patientId = generatePatientId();
-      const tempPassword = `temp${patientId.slice(-6)}`;
+      const patientPassword = patientData.password || `temp${patientId.slice(-6)}`;
       
-      const { user } = await createUserWithEmailAndPassword(secondaryAuth, patientData.email, tempPassword);
+      const { user } = await createUserWithEmailAndPassword(secondaryAuth, patientData.email, patientPassword);
       
       await updateProfile(user, {
         displayName: `${patientData.firstName} ${patientData.lastName}`
@@ -880,11 +879,16 @@ export const AuthProvider = ({ children }) => {
         firstName: patientData.firstName,
         lastName: patientData.lastName,
         role: 'patient',
-        hospitalId: targetHospitalId,        hospitalName: hospital.name,
+        hospitalId: targetHospitalId,
+        hospitalName: hospital.name,
         phoneNumber: patientData.phoneNumber,
         dateOfBirth: patientData.dateOfBirth,
         address: patientData.address,
+        city: patientData.city,
+        state: patientData.state,
+        zipCode: patientData.zipCode,
         emergencyContact: patientData.emergencyContact,
+        emergencyContactName: patientData.emergencyContactName,
         bloodGroup: patientData.bloodGroup,
         allergies: patientData.allergies,
         medicalHistory: patientData.medicalHistory,
@@ -892,13 +896,167 @@ export const AuthProvider = ({ children }) => {
         isActive: true,
         isAdmitted: false,
         medicineDeliveryType: 'pharmacy', // Default to pharmacy pickup
-        tempPassword: tempPassword,
-        needsPasswordUpdate: true
+        needsPasswordUpdate: !patientData.password, // Only need update if temp password        isFirstLogin: !patientData.password // Only first login if temp password
       };
 
       await setDoc(doc(db, 'users', user.uid), patientRecord);
       
-      return patientRecord;
+      await signOut(secondaryAuth);
+      
+      return { 
+        patientId, 
+        password: patientPassword, 
+        patientRecord,
+        hospitalName: hospital.name 
+      };
+    } catch (error) {
+      throw error;
+    }  };
+
+  const registerDeliveryPartner = async (partnerData) => {
+    try {
+    const { user } = await createUserWithEmailAndPassword(secondaryAuth, partnerData.email, partnerData.password);
+    
+    await updateProfile(user, {
+      displayName: `${partnerData.firstName} ${partnerData.lastName}`
+    });
+
+    const partnerId = `DP${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 100).toString().padStart(2, '0')}`;
+
+    const partnerRecord = {
+      uid: user.uid,
+      partnerId: partnerId,
+      email: partnerData.email,
+      firstName: partnerData.firstName,
+      lastName: partnerData.lastName,
+      phoneNumber: partnerData.phoneNumber,
+      address: partnerData.address,
+      city: partnerData.city,
+      state: partnerData.state,
+      zipCode: partnerData.zipCode,
+      vehicleType: partnerData.vehicleType,
+      vehicleNumber: partnerData.vehicleNumber,
+      licenseNumber: partnerData.licenseNumber,
+      aadharNumber: partnerData.aadharNumber,
+      emergencyContact: partnerData.emergencyContact,
+      workingHours: partnerData.workingHours,
+      preferredAreas: partnerData.preferredAreas,
+      experience: partnerData.experience,
+      bankAccountNumber: partnerData.bankAccountNumber,
+      bankIFSC: partnerData.bankIFSC,
+      panNumber: partnerData.panNumber,
+      role: 'delivery_partner',
+      isActive: true,
+      isOnline: false,
+      currentHospital: null,
+      rating: 0,
+      totalDeliveries: 0,
+      totalEarnings: 0,
+      registrationDate: new Date().toISOString(),
+      verificationStatus: 'pending',
+      documents: {
+        license: partnerData.licenseNumber,
+        aadhar: partnerData.aadharNumber,
+        pan: partnerData.panNumber
+      }
+    };
+
+    await setDoc(doc(db, 'users', user.uid), partnerRecord);
+
+    return { partner: partnerRecord, partnerId };
+  } catch (error) {
+    throw error;
+  }
+};
+
+const assignDeliveryTask = async (taskData) => {
+  try {
+    const taskId = `DELIV${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 100).toString().padStart(2, '0')}`;
+    
+    // Find available delivery partners for the hospital
+    const partnersQuery = query(
+      collection(db, 'users'),
+      where('role', '==', 'delivery_partner'),
+      where('isOnline', '==', true),
+      where('currentHospital', '==', taskData.hospitalId)
+    );
+    
+    const partnersSnapshot = await getDocs(partnersQuery);
+    const availablePartners = partnersSnapshot.docs.map(doc => doc.data());
+    
+    if (availablePartners.length === 0) {
+      // If no delivery partners available, use internal pharmacy staff
+      return await createDeliveryTask(taskData);
+    }
+    
+    // Select partner with highest rating or random if ratings are equal
+    const selectedPartner = availablePartners.sort((a, b) => b.rating - a.rating)[0];
+    
+    const task = {
+      taskId,
+      ...taskData,
+      assignedTo: selectedPartner.uid,
+      assignedPartner: {
+        partnerId: selectedPartner.partnerId,
+        name: `${selectedPartner.firstName} ${selectedPartner.lastName}`,
+        phoneNumber: selectedPartner.phoneNumber,
+        vehicleType: selectedPartner.vehicleType
+      },
+      status: 'assigned',
+      priority: taskData.isEmergency ? 'high' : 'normal',
+      estimatedPayment: taskData.isEmergency ? 100 : 60,
+      assignedAt: new Date().toISOString()
+    };
+    
+    await setDoc(doc(db, 'delivery_tasks', taskId), task);
+    
+    // Send notification to delivery partner
+    await setDoc(doc(db, 'partner_notifications', `NOTIF${Date.now()}`), {
+      partnerId: selectedPartner.partnerId,
+      taskId: taskId,
+      type: 'delivery_assignment',
+      title: taskData.isEmergency ? '🚨 Emergency Delivery' : '📦 New Delivery',
+      message: `New delivery task assigned: ${taskData.patientName}`,
+      isEmergency: taskData.isEmergency,
+      createdAt: new Date().toISOString(),
+      read: false
+    });
+    
+    return task;
+  } catch (error) {
+    throw error;
+  }
+};
+
+  const createNurseRequest = async (requestData) => {
+    try {
+      const requestId = `NR${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 100).toString().padStart(2, '0')}`;
+      
+      const nurseRequest = {
+        requestId,
+        hospitalId: requestData.hospitalId,
+        pharmacyStaffId: requestData.pharmacyStaffId || userDetails?.staffId,
+        pharmacyStaffName: requestData.pharmacyStaffName || `${userDetails?.firstName} ${userDetails?.lastName}`,
+        type: requestData.isEmergency ? 'emergency_assistance' : 'medication_assistance',
+        priority: requestData.isEmergency ? 'high' : 'medium',
+        title: requestData.isEmergency ? '🚨 Emergency Pharmacy Assistance Needed' : '💊 Pharmacy Assistance Needed',
+        description: requestData.description || `Help needed with ${requestData.patientName}'s medication. Location: ${requestData.location || 'Pharmacy'}`,
+        patientId: requestData.patientId,
+        patientName: requestData.patientName,
+        medications: requestData.medications || [],
+        location: requestData.location || 'Pharmacy',
+        bedNumber: requestData.bedNumber,
+        isEmergency: requestData.isEmergency || false,
+        status: 'pending',
+        acceptedBy: null,
+        acceptedAt: null,
+        createdAt: new Date().toISOString(),
+        estimatedTime: requestData.isEmergency ? '5-10 minutes' : '10-15 minutes',
+        instructions: requestData.instructions || 'Please report to pharmacy for medication assistance and support'
+      };
+
+      await setDoc(doc(db, 'nurse_requests', requestId), nurseRequest);
+      return nurseRequest;
     } catch (error) {
       throw error;
     }
@@ -922,7 +1080,8 @@ export const AuthProvider = ({ children }) => {
     return unsubscribe;
   }, []);
   const value = {
-    currentUser,    userRole,
+    currentUser,    
+    userRole,
     userDetails,
     login,
     registerStaff,
@@ -957,7 +1116,10 @@ export const AuthProvider = ({ children }) => {
     getConsultationFee,
     getMedicationCost,
     getStaffPermissions,
-    loading
+    loading,
+    registerDeliveryPartner,
+    assignDeliveryTask,
+    createNurseRequest,
   };
 
   return (
